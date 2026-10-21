@@ -1,0 +1,21 @@
+# build
+build/
+.gradle/
+*.apk
+*.aab
+local.properties
+# secrets
+*.jks
+*.keystore
+*.p12
+*.pem
+*.pass
+.env*
+# private
+evidence/
+screenshots/
+backups/
+downloads/
+tmp-*/
+__pycache__/
+.DS_Store

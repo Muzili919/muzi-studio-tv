@@ -1,0 +1,4 @@
+#EXTM3U
+# 示例占位：请换成你自己有权使用的直播源 / Example only, replace with streams you are allowed to use
+#EXTINF:-1 group-title="示例",Example Channel
+https://live.example.com/channel1.m3u8

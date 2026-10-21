@@ -1,0 +1,6 @@
+buildscript {
+ configurations.classpath.resolutionStrategy.eachDependency {
+  if (requested.group == 'org.jetbrains.kotlin' && (requested.name == 'kotlin-reflect' || requested.name == 'kotlin-stdlib')) useVersion '1.9.22'
+ }
+}
+plugins { id 'com.android.application' version '8.5.2' apply false }

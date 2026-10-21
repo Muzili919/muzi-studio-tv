@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'studio.muzi.tv'
+ compileSdk 34
+ defaultConfig {
+  applicationId 'studio.muzi.tv'
+  minSdk 23
+  targetSdk 34
+  versionCode 100
+  versionName '1.0.0'
+  // 部署地址可配置：./gradlew -PmuziBaseUrl=https://your.domain/tv -PmuziLibreUrl=https://libretv.your.domain
+  buildConfigField 'String', 'BASE_URL', '"' + (project.findProperty('muziBaseUrl') ?: 'https://tv.example.com/tv') + '"'
+  buildConfigField 'String', 'LIBRE_URL', '"' + (project.findProperty('muziLibreUrl') ?: 'https://libretv.example.com') + '"'
+ }
+ signingConfigs {
+  release {
+   // 签名通过环境变量提供，仓库不含 keystore / Signing via env vars, no keystore in repo
+   if (System.getenv('MUZI_KEYSTORE')) {
+    storeFile file(System.getenv('MUZI_KEYSTORE'))
+    storePassword System.getenv('MUZI_KEYSTORE_PASSWORD')
+    keyAlias System.getenv('MUZI_KEY_ALIAS') ?: 'muzi-tv'
+    keyPassword System.getenv('MUZI_KEY_PASSWORD') ?: System.getenv('MUZI_KEYSTORE_PASSWORD')
+   }
+  }
+ }
+ buildFeatures { buildConfig true }
+ buildTypes { release { minifyEnabled false; if (System.getenv('MUZI_KEYSTORE')) signingConfig signingConfigs.release } }
+ compileOptions {
+  sourceCompatibility JavaVersion.VERSION_1_8
+  targetCompatibility JavaVersion.VERSION_1_8
+ }
+}
+
+dependencies {
+ implementation 'androidx.media3:media3-exoplayer:1.3.1'
+ implementation 'androidx.media3:media3-exoplayer-hls:1.3.1'
+}

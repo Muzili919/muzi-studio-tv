@@ -1,0 +1,112 @@
+{
+  "spider": "",
+  "wallpaper": "",
+  "sites": [
+    {
+      "key": "cat_movie",
+      "name": "电影",
+      "type": 1,
+      "api": "https://cms-c.example.com/api.php/provide/vod/",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "categories": [
+        "动作片",
+        "喜剧片",
+        "恐怖片",
+        "科幻片",
+        "爱情片",
+        "剧情片",
+        "战争片",
+        "记录片",
+        "电影片",
+        "电影解说",
+        "短剧"
+      ]
+    },
+    {
+      "key": "cat_tv",
+      "name": "电视剧",
+      "type": 1,
+      "api": "https://cms-c.example.com/api.php/provide/vod/",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "categories": [
+        "国产剧",
+        "欧美剧",
+        "香港剧",
+        "韩国剧",
+        "台湾剧",
+        "日本剧",
+        "海外剧",
+        "泰国剧",
+        "连续剧"
+      ]
+    },
+    {
+      "key": "cat_anime",
+      "name": "动漫",
+      "type": 1,
+      "api": "https://cms-c.example.com/api.php/provide/vod/",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "categories": [
+        "日韩动漫",
+        "国产动漫",
+        "海外动漫",
+        "欧美动漫",
+        "港台动漫",
+        "动画片",
+        "动漫片",
+        "AI漫剧"
+      ]
+    },
+    {
+      "key": "cat_variety",
+      "name": "综艺",
+      "type": 1,
+      "api": "https://cms-c.example.com/api.php/provide/vod/",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "categories": [
+        "大陆综艺",
+        "港台综艺",
+        "日韩综艺",
+        "欧美综艺",
+        "综艺片"
+      ]
+    },
+    {
+      "key": "cat_sports",
+      "name": "体育",
+      "type": 1,
+      "api": "https://tv.example.com/tv/sports/",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "categories": [
+        "斯诺克",
+        "斯诺克·量子",
+        "羽毛球",
+        "羽毛球·量子",
+        "台球·红牛",
+        "足球",
+        "篮球",
+        "网球"
+      ]
+    }
+  ],
+  "lives": [
+    {
+      "name": "全部直播",
+      "type": 0,
+      "url": "https://tv.example.com/tv/live-example.m3u",
+      "playerType": 2,
+      "timeout": 10
+    }
+  ],
+  "parses": []
+}

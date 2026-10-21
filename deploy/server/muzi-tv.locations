@@ -1,0 +1,11 @@
+# muzi-tv public (independent path, added 2026-10-22)
+location /tv/sports/ {
+    proxy_pass http://127.0.0.1:18082/;
+    proxy_read_timeout 60s;
+}
+location /tv/ {
+    alias /var/www/muzi-tv/;
+    add_header Cache-Control "no-cache";
+    types { application/json json; application/vnd.android.package-archive apk; audio/x-mpegurl m3u; }
+    default_type application/octet-stream;
+}

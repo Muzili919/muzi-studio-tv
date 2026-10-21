@@ -1,0 +1,20 @@
+{
+  "about": "本地精彩标记，不来自片源接口。timeSec 单位是秒。episode 从 1 开始，与界面「第 N 集」一致；省略 episode 表示电影或每一集都使用这些标记。下面的时间只为验证界面，不是正片章节。",
+  "entries": [
+    {
+      "match": { "titleContains": "怪奇物语", "episode": 1 },
+      "highlights": [
+        { "timeSec": 420, "text": "开场冲突" },
+        { "timeSec": 1800, "text": "反转" }
+      ]
+    },
+    {
+      "match": { "titleContains": "流浪地球" },
+      "highlights": [
+        { "timeSec": 480, "text": "示例 · 出发" },
+        { "timeSec": 2700, "text": "示例 · 危机" },
+        { "timeSec": 6300, "text": "示例 · 抉择" }
+      ]
+    }
+  ]
+}

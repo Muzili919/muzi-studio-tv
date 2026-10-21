@@ -1,0 +1,59 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <uses-permission android:name="android.permission.INTERNET" />
+ <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+ <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+ <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+ <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+ <uses-feature android:name="android.software.leanback" android:required="false" />
+ <queries>
+  <package android:name="com.fongmi.android.tv" />
+  <package android:name="com.xiaodianshi.tv.yst" />
+  <package android:name="tv.danmaku.bili" />
+  <package android:name="com.phlox.tvwebbrowser" />
+  <package android:name="com.ktcp.video" />
+  <package android:name="com.google.android.youtube.tv" />
+  <package android:name="com.teamsmart.videomanager.tv" />
+  <package android:name="org.smarttube.stable" />
+  <package android:name="com.google.android.youtube" />
+  <package android:name="com.xiaomi.mitv.settings" />
+  <package android:name="com.mitv.tvhome" />
+  <intent>
+   <action android:name="android.intent.action.MAIN" />
+   <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+  </intent>
+  <intent>
+   <action android:name="android.intent.action.MAIN" />
+   <category android:name="android.intent.category.LAUNCHER" />
+  </intent>
+  <intent>
+   <action android:name="android.intent.action.VIEW" />
+   <data android:scheme="https" />
+  </intent>
+ </queries>
+ <application android:label="@string/app_name" android:icon="@drawable/icon" android:banner="@drawable/banner" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="true">
+  <activity android:name=".MainActivity" android:screenOrientation="landscape" android:exported="true" android:launchMode="singleTask">
+   <intent-filter>
+    <action android:name="android.intent.action.MAIN" />
+    <category android:name="android.intent.category.LAUNCHER" />
+    <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+   </intent-filter>
+   <intent-filter>
+    <action android:name="android.intent.action.MAIN" />
+    <category android:name="android.intent.category.HOME" />
+    <category android:name="android.intent.category.DEFAULT" />
+   </intent-filter>
+  </activity>
+  <service android:name=".HomeRedirectService" android:exported="true" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+   <intent-filter>
+    <action android:name="android.accessibilityservice.AccessibilityService" />
+   </intent-filter>
+   <meta-data android:name="android.accessibilityservice" android:resource="@xml/home_redirect" />
+  </service>
+  <receiver android:name=".BootReceiver" android:exported="true">
+   <intent-filter>
+    <action android:name="android.intent.action.BOOT_COMPLETED" />
+   </intent-filter>
+  </receiver>
+  <provider android:name=".ApkProvider" android:authorities="studio.muzi.tv.apk" android:exported="false" android:grantUriPermissions="true" />
+ </application>
+</manifest>
