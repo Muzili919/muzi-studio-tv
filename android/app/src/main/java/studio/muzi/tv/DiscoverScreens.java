@@ -35,11 +35,11 @@ import studio.muzi.tv.LiveGuide;
 /* loaded from: classes3.dex */
 final class DiscoverScreens {
     static final long CACHE_MS = 600000;
-    static final String CN_M3U = BuildConfig.BASE_URL + "/live-example.m3u";
+    static final String CN_M3U = "https://zhishixingqiu.top/tv/live-all-v3.m3u";
     static final String HK_M3U = "https://iptv-org.github.io/iptv/countries/hk.m3u";
-    static final String[][] SOURCES = {
-        new String[]{"lz", "量子", "https://cms-c.example.com/api.php/provide/vod"},
-        new String[]{"ms", "木子体育", BuildConfig.BASE_URL + "/sports/"}
+    static String[][] SOURCES = {
+        new String[]{"lz", "量子", "https://cj.lziapi.com/api.php/provide/vod"},
+        new String[]{"ms", "木子体育", "https://zhishixingqiu.top/tv/sports/"}
     };
     /** 顶栏六入口：按钮位置 -> 内部 tab（电影0 电视剧1 综艺2 动漫3 体育4 直播5）；-1 = 推荐。 */
     static final int[] TAB_IDS = {0, 1, 3, 2, 4, 5};
@@ -766,23 +766,27 @@ final class DiscoverScreens {
         final LinearLayout host = column(a);
         a.posters.addView(host);
         a.status.setText("正在读取" + typeName + "…");
-        final String base = SOURCES[0][2];
         run(a, new Runnable() {
             @Override public void run() {
                 List<CmsCatalog.Item> items = new ArrayList<>();
                 String err = null;
-                try {
-                    JSONArray cls = classes(base);
-                    String tid = null;
-                    for (int i = 0; i < cls.length(); i++) {
-                        JSONObject c = cls.getJSONObject(i);
-                        if (typeName.equals(c.optString("type_name"))) { tid = c.optString("type_id"); break; }
-                    }
-                    if (tid == null) throw new IOException("无此分类");
-                    for (int pg = 1; pg <= 2; pg++) {
-                        items.addAll(CmsCatalog.parse(cachedGet(query(base, "ac=videolist&t=" + tid + "&pg=" + pg)), SOURCES[0][0], SOURCES[0][1], base));
-                    }
-                } catch (Exception e) { err = e.getMessage(); }
+                for (String[] src : SOURCES) {
+                    if ("ms".equals(src[0]) || !items.isEmpty()) continue;
+                    String base = src[2];
+                    try {
+                        JSONArray cls = classes(base);
+                        String tid = null;
+                        for (int i = 0; i < cls.length(); i++) {
+                            JSONObject c = cls.getJSONObject(i);
+                            String n = c.optString("type_name");
+                            if (typeName.equals(n) || typeName.replace("记录", "纪录").equals(n)) { tid = c.optString("type_id"); break; }
+                        }
+                        if (tid == null) continue;
+                        for (int pg = 1; pg <= 2; pg++) {
+                            items.addAll(CmsCatalog.parse(cachedGet(query(base, "ac=videolist&t=" + tid + "&pg=" + pg)), src[0], src[1], base));
+                        }
+                    } catch (Exception e) { err = e.getMessage(); }
+                }
                 final List<CmsCatalog.Item> got = items;
                 final String fail = err;
                 a.ui.post(new Runnable() {

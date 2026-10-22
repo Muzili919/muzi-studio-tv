@@ -159,8 +159,9 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(5894);
         readConfig();
         initSources();
+        new Thread(MultiSource::applyRank).start();
         this.libraryTab = -1;
-        DiscoverScreens.openLibrary(this);
+        showHome();
     }
 
     /** 客厅 = 米家激光投影 MiProjA1；其他（MiTV4A）= 卧室。 */
@@ -220,7 +221,7 @@ public class MainActivity extends Activity {
 
     void initSources() {
         this.sources = new JSONArray();
-        String[][] list = {new String[]{"bf", "暴风资源", "https://cms-a.example.com/api.php/provide/vod"}, new String[]{"ff", "非凡资源", "https://cms-b.example.com/api.php/provide/vod"}, new String[]{"lz", "量子资源", "https://cms-c.example.com/api.php/provide/vod"}};
+        String[][] list = {new String[]{"bf", "暴风资源", "https://bfzyapi.com/api.php/provide/vod"}, new String[]{"ff", "非凡资源", "https://api.ffzyapi.com/api.php/provide/vod"}, new String[]{"lz", "量子资源", "https://cj.lziapi.com/api.php/provide/vod"}};
         for (String[] v : list) {
             try {
                 this.sources.put(new JSONObject().put("key", v[0]).put("name", v[1]).put("url", v[2]));
@@ -298,6 +299,8 @@ public class MainActivity extends Activity {
         p.addView(b, lp);
     }
 
+    static android.graphics.Bitmap wallpaper;
+
     LinearLayout page(String title) {
         stopVideo();
         this.loadGeneration++;
@@ -306,6 +309,11 @@ public class MainActivity extends Activity {
         base.setOrientation(1);
         base.setPadding(dp(40.0f), dp(16.0f), dp(40.0f), dp(12.0f));
         base.setBackgroundColor(Color.rgb(10, 17, 28));
+        try {
+            if (wallpaper == null) wallpaper = BitmapFactory.decodeStream(getAssets().open("galaxy.jpg"));
+            android.graphics.drawable.BitmapDrawable wd = new android.graphics.drawable.BitmapDrawable(getResources(), wallpaper);
+            base.setBackground(wd);
+        } catch (Exception ignored) { }
         LinearLayout top = new LinearLayout(this);
         TextView heading = text(title, 28);
         top.addView(heading, new LinearLayout.LayoutParams(0, -2, 1.0f));
@@ -352,7 +360,7 @@ public class MainActivity extends Activity {
 
     void openLibreWebsite(String path) {
         try {
-            Intent i = new Intent("android.intent.action.VIEW", Uri.parse(BuildConfig.LIBRE_URL + path));
+            Intent i = new Intent("android.intent.action.VIEW", Uri.parse("https://tv.bagiinlink.eu.org" + path));
             i.setPackage("com.phlox.tvwebbrowser");
             startActivity(i);
         } catch (Exception e) {
@@ -405,31 +413,28 @@ public class MainActivity extends Activity {
         this.selected = n;
         switch (n) {
             case 0:
-                m1698lambda$search$28$studiomuzitvMainActivity();
-                break;
-            case 1:
                 openFongMi();
                 break;
-            case 2:
+            case 1:
                 launch("com.ktcp.video");
                 break;
-            case 3:
+            case 2:
                 chooseYoutube();
                 break;
-            case 4:
+            case 3:
                 BiliScreens.show(this);
                 break;
-            case 5:
-            case 9:
+            case 4:
+            case 8:
                 showLive();
                 break;
-            case 6:
+            case 5:
                 showInputs();
                 break;
-            case 7:
+            case 6:
                 showApps();
                 break;
-            case 8:
+            case 7:
                 showSettings();
                 break;
         }
@@ -1344,7 +1349,30 @@ public class MainActivity extends Activity {
         this.currentEpisode = index;
         String ep = this.episodes.optString(index);
         String url = ep.contains("$") ? ep.substring(ep.indexOf(36) + 1) : ep;
-        String title = this.currentDetail.optJSONObject("videoInfo").optString("title", "LibreTV");
+        final String title = this.currentDetail.optJSONObject("videoInfo").optString("title", "muzi.studio");
+        if (this.server == null || this.server.isEmpty()) {
+            page(title);
+            this.status.setText("正在为你挑选最快线路…");
+            final long gen = this.loadGeneration;
+            final int epi = index;
+            final String first = url;
+            this.io.execute(new Runnable() {
+                @Override public void run() {
+                    final java.util.List<MultiSource.Line> ls = MultiSource.rank(title, epi, first);
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            if (gen != loadGeneration) return;
+                            MultiSource.lines = ls;
+                            MultiSource.current = 0;
+                            MultiSource.Line best = ls.isEmpty() ? null : ls.get(0);
+                            if (best != null) toast("线路「" + best.name + "」" + String.format(Locale.ROOT, "%.1f", best.mbps) + " Mbps，共 " + ls.size() + " 条");
+                            play(best == null ? first : best.url, title);
+                        }
+                    });
+                }
+            });
+            return;
+        }
         play(url, title);
     }
 
@@ -1629,6 +1657,7 @@ public class MainActivity extends Activity {
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory().setUserAgent("MuziTV/0.10").setDefaultRequestProperties(headers).setConnectTimeoutMs(15000).setReadTimeoutMs(25000);
         this.video = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).setLoadControl(new DefaultLoadControl.Builder().setBufferDurationsMs(60000, 180000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS, 10000).setTargetBufferBytes(67108864).setPrioritizeTimeOverSizeThresholds(false).build()).build();
         this.video.setVideoTextureView(surface);
+        MultiSource.watch(this, title);
         this.video.setAudioAttributes(new AudioAttributes.Builder().setUsage(1).setContentType(3).build(), true);
         this.video.addListener(new Player.Listener() {
             @Override
@@ -2337,7 +2366,7 @@ public class MainActivity extends Activity {
         box.addView(help, new LinearLayout.LayoutParams(-1, -2));
         final EditText url = new EditText(this);
         url.setSingleLine(true);
-        url.setHint("http://<your-host>:8765/highlights.json");
+        url.setHint("http://192.168.1.8:8765/highlights.json");
         url.setText(HighlightStore.readUrl(this));
         box.addView(url, new LinearLayout.LayoutParams(-1, -2));
         scrollView.addView(box);
@@ -2597,8 +2626,8 @@ public class MainActivity extends Activity {
         Home() {
             super(MainActivity.this);
             this.p = new Paint(3);
-            this.labels = new String[]{"LibreTV", "FongMi", "腾讯视频", "YouTube", "哔哩哔哩", "电视直播", "外接设备", "全部应用", "设置", "直播频道"};
-            this.hit = new RectF[10];
+            this.labels = new String[]{"FongMi", "腾讯视频", "YouTube", "哔哩哔哩", "电视直播", "外接设备", "全部应用", "设置", "直播频道"};
+            this.hit = new RectF[9];
             this.sx = 1.0f;
             this.sy = 1.0f;
             this.regular = Typeface.create("sans-serif", 0);
@@ -2606,7 +2635,7 @@ public class MainActivity extends Activity {
             setFocusable(true);
             setFocusableInTouchMode(true);
             try {
-                this.wall = BitmapFactory.decodeStream(MainActivity.this.getAssets().open("milky-way.jpg"));
+                this.wall = BitmapFactory.decodeStream(MainActivity.this.getAssets().open("galaxy.jpg"));
             } catch (Exception e) {
             }
             this.clockTick = new Runnable() { // from class: studio.muzi.tv.MainActivity$Home$$ExternalSyntheticLambda0
@@ -2704,20 +2733,19 @@ public class MainActivity extends Activity {
             txt(c, now, 1634.0f, 128.0f, 66.0f, -1, false);
             txt(c, new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()), 1647.0f, 166.0f, 19.0f, -3092008, false);
             box(c, new RectF(96.0f, 725.0f, 1824.0f, 950.0f), -1206839518, 28.0f);
-            for (int i7 = 0; i7 < 7; i7++) {
-                float x2 = 112.0f + (i7 * 242.0f);
+            // 0 FongMi, 1 腾讯, 2 YouTube, 3 哔哩, 4 直播, 5 HDMI
+            for (int i7 = 0; i7 < 6; i7++) {
+                float x2 = 148.0f + (i7 * 280.0f);
                 RectF tile = new RectF(x2, 745.0f, x2 + 214.0f, 885.0f);
                 boolean focus = MainActivity.this.selected == i7;
                 if (focus) {
                     tile = new RectF(x2 - 6.0f, 735.0f, x2 + 214.0f + 6.0f, 882.0f);
                 }
                 this.hit[i7] = new RectF(x2 - 6.0f, 728.0f, x2 + 214.0f + 6.0f, 946.0f);
-                // 0 LibreTV, 1 FongMi, 2 腾讯, 3 YouTube, 4 哔哩, 5 直播, 6 HDMI
-                int color = i7 == 0 ? -2762263
-                        : i7 == 1 ? -14774450
-                        : (i7 == 2 || i7 == 3) ? -657671
-                        : i7 == 4 ? -298343
-                        : i7 == 5 ? -14271146
+                int color = i7 == 0 ? -14774450
+                        : (i7 == 1 || i7 == 2) ? -657671
+                        : i7 == 3 ? -298343
+                        : i7 == 4 ? -14271146
                         : -13617340;
                 box(c, tile, color, 17.0f);
                 if (focus) {
@@ -2729,19 +2757,17 @@ public class MainActivity extends Activity {
                 }
                 float cy = focus ? 807.0f : 815.0f;
                 if (i7 == 0) {
-                    txt(c, "LibreTV", x2 + 18.0f, cy + 16.0f, 32.0f, -15063744, true);
-                } else if (i7 == 1) {
                     drawFongMiMark(c, x2, cy);
-                } else if (i7 == 2) {
+                } else if (i7 == 1) {
                     tri(c, x2 + 62.0f, cy - 40.0f, 86.0f, 76.0f, -14632204);
                     tri(c, x2 + 72.0f, cy - 31.0f, 66.0f, 58.0f, -11087994);
                     tri(c, x2 + 84.0f, cy - 22.0f, 44.0f, 42.0f, -17355);
-                } else if (i7 == 3) {
+                } else if (i7 == 2) {
                     box(c, new RectF(x2 + 64.0f, cy - 32.0f, x2 + 140.0f, cy + 32.0f), -842187, 18.0f);
                     tri(c, x2 + 94.0f, cy - 15.0f, 24.0f, 30.0f, -1);
-                } else if (i7 == 4) {
+                } else if (i7 == 3) {
                     txt(c, "哔哩", x2 + 58.0f, cy + 15.0f, 40.0f, -1, true);
-                } else if (i7 == 5) {
+                } else if (i7 == 4) {
                     txt(c, "LIVE", x2 + 52.0f, cy + 15.0f, 38.0f, -1, false);
                 } else {
                     txt(c, "HDMI", x2 + 50.0f, cy + 13.0f, 32.0f, -1, true);
@@ -2751,8 +2777,8 @@ public class MainActivity extends Activity {
                 float tw = this.p.measureText(this.labels[i7]);
                 txt(c, this.labels[i7], x2 + ((214.0f - tw) / 2.0f), 928.0f, 20.0f, focus ? -1 : -3814700, false);
             }
-            for (int i8 = 7; i8 < this.labels.length; i8++) {
-                float x3 = ((i8 - 7) * 220) + 112;
+            for (int i8 = 6; i8 < this.labels.length; i8++) {
+                float x3 = ((i8 - 6) * 220) + 112;
                 this.hit[i8] = new RectF(x3 - 10.0f, 975.0f, 190.0f + x3, 1028.0f);
                 if (MainActivity.this.selected == i8) {
                     box(c, this.hit[i8], -2142346366, 9.0f);
@@ -2793,51 +2819,41 @@ public class MainActivity extends Activity {
             path.close();
             c.drawPath(path, this.p);
         }
-
         @Override // android.view.View, android.view.KeyEvent.Callback
         public boolean onKeyDown(int key, KeyEvent e) {
-            MainActivity mainActivity;
-            int i;
-            int i2;
-            int i3;
-            if (key != 22) {
-                if (key == 21) {
-                    mainActivity = MainActivity.this;
-                    i3 = MainActivity.this.selected < 7 ? Math.max(0, MainActivity.this.selected - 1) : Math.max(7, MainActivity.this.selected - 1);
+            final int row = 6;
+            int s = MainActivity.this.selected;
+            if (key == 22) {
+                if (s < row) {
+                    s = Math.min(row - 1, s + 1);
                 } else {
-                    if (key == 20) {
-                        mainActivity = MainActivity.this;
-                        if (MainActivity.this.selected < 7) {
-                            i3 = Math.min(2, (MainActivity.this.selected * 3) / 7) + 7;
-                        }
-                    } else {
-                        if (key != 19) {
-                            if (key != 23 && key != 66) {
-                                return super.onKeyDown(key, e);
-                            }
-                            MainActivity.this.openHomeItem(MainActivity.this.selected);
-                            return true;
-                        }
-                        mainActivity = MainActivity.this;
-                        if (MainActivity.this.selected >= 7) {
-                            i = 7 - 1;
-                            i2 = ((MainActivity.this.selected - 7) * 7) / 3;
-                        }
-                    }
-                    i3 = MainActivity.this.selected;
+                    s = Math.min(this.labels.length - 1, s + 1);
                 }
-                mainActivity.selected = i3;
-                invalidate();
+            } else if (key == 21) {
+                if (s < row) {
+                    s = Math.max(0, s - 1);
+                } else {
+                    s = Math.max(row, s - 1);
+                }
+            } else if (key == 20) {
+                if (s < row) {
+                    s = Math.min(2, (s * 3) / row) + row;
+                }
+            } else if (key == 19) {
+                if (s >= row) {
+                    s = Math.min(row - 1, ((s - row) * row) / 3);
+                }
+            } else if (key == 23 || key == 66) {
+                MainActivity.this.openHomeItem(MainActivity.this.selected);
                 return true;
+            } else {
+                return super.onKeyDown(key, e);
             }
-            mainActivity = MainActivity.this;
-            i = MainActivity.this.selected < 7 ? 7 - 1 : this.labels.length - 1;
-            i2 = MainActivity.this.selected + 1;
-            i3 = Math.min(i, i2);
-            mainActivity.selected = i3;
+            MainActivity.this.selected = s;
             invalidate();
             return true;
         }
+
 
         @Override // android.view.View
         public boolean onTouchEvent(MotionEvent e) {

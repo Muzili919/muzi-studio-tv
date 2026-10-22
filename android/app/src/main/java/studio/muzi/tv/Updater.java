@@ -16,9 +16,9 @@ import java.net.URL;
 import java.security.MessageDigest;
 import org.json.JSONObject;
 
-/** Checks BuildConfig.BASE_URL/version.json and offers to install newer studio / FongMi APKs. */
+/** Checks https://zhishixingqiu.top/tv/version.json and offers to install newer studio / FongMi APKs. */
 public final class Updater {
-    public static final String VERSION_URL = BuildConfig.BASE_URL + "/version.json";
+    public static final String VERSION_URL = "https://zhishixingqiu.top/tv/version.json";
     private static boolean checked;
 
     public static void check(final Activity a) {
