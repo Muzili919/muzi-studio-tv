@@ -15,6 +15,7 @@ A lightweight Android TV home (Android 6.0+ / API 23): a recommendation page wit
 cd android
 ./gradlew assembleRelease -PmuziBaseUrl=https://your.domain/tv -PmuziLibreUrl=https://libretv.your.domain
 # 可选签名 / optional signing:
+# 优先读 android/signing.env（gitignore，不入库）；也可继续用环境变量：
 # MUZI_KEYSTORE=/path/release.jks MUZI_KEYSTORE_PASSWORD=... MUZI_KEY_ALIAS=... ./gradlew assembleRelease
 ```
 `muziBaseUrl` 下应有 `version.json`、`live-example.m3u`、`sports/`（见 `deploy/`）。远程升级必须一直用同一把签名。

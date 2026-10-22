@@ -11,6 +11,9 @@ local.properties
 *.pem
 *.pass
 .env*
+signing.env
+android/signing.env
+android/keystore/
 # private
 evidence/
 screenshots/
@@ -18,4 +21,6 @@ backups/
 downloads/
 tmp-*/
 __pycache__/
+*.db
+deploy/server/sports.db
 .DS_Store

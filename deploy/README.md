@@ -7,7 +7,7 @@
 | `www/version.json` | studio 自动更新清单（versionCode / url / sha256）/ auto-update manifest |
 | `../fongmi-config/fongmi.example.json` | FongMi 配置示例（片源均为占位）/ FongMi config example, placeholder sources |
 | `../fongmi-config/live-example.m3u` | 直播列表示例 / live playlist example |
-| `server/sports_cms.py` | 可选：把多个 CMS 聚合成体育分类的小服务，监听 127.0.0.1:18082 / optional sports aggregator |
+| `server/sports_cms.py` | 体育聚合：稳定一级（斯诺克/羽毛球/足球/篮球）+ 扁平「赛事·年」+ SQLite 年份索引。`python3 sports_cms.py --self-test`，全量前先 `--index --pages N`。无「羽毛球·年」「台球·红牛」「羽毛球·量子」。 |
 | `server/muzi-sports.service` | systemd 单元 / systemd unit |
 | `server/muzi-tv.locations` | nginx `location` 片段，在你的 server 块里 include / nginx snippet |
 

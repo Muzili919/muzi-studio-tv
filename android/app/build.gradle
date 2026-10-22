@@ -1,33 +1,63 @@
 plugins { id 'com.android.application' }
+
+def signingProps = new Properties()
+def signingEnvFile = rootProject.file('signing.env')
+if (signingEnvFile.exists()) {
+    signingEnvFile.withInputStream { signingProps.load(it) }
+}
+def signingProp = { String key ->
+    def env = System.getenv(key)
+    if (env != null && !env.isEmpty()) return env
+    return signingProps.getProperty(key)
+}
+
 android {
- namespace 'studio.muzi.tv'
- compileSdk 34
- defaultConfig {
-  applicationId 'studio.muzi.tv'
-  minSdk 23
-  targetSdk 34
-  versionCode 104
-  versionName '1.1.3'
- }
- signingConfigs {
-  release {
-   // Signing via env vars; no keystore or passwords in the repo
-   if (System.getenv('MUZI_KEYSTORE')) {
-    storeFile file(System.getenv('MUZI_KEYSTORE'))
-    storePassword System.getenv('MUZI_KEYSTORE_PASSWORD')
-    keyAlias System.getenv('MUZI_KEY_ALIAS') ?: 'muzi-tv'
-    keyPassword System.getenv('MUZI_KEY_PASSWORD') ?: System.getenv('MUZI_KEYSTORE_PASSWORD')
-   }
-  }
- }
- buildTypes { release { minifyEnabled false; if (System.getenv('MUZI_KEYSTORE')) signingConfig signingConfigs.release } }
- compileOptions {
-  sourceCompatibility JavaVersion.VERSION_1_8
-  targetCompatibility JavaVersion.VERSION_1_8
- }
+    namespace 'studio.muzi.tv'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'studio.muzi.tv'
+        minSdk 23
+        targetSdk 34
+        versionCode 105
+        versionName '1.1.4'
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+    signingConfigs {
+        release {
+            def ks = signingProp('MUZI_KEYSTORE')
+            if (ks) {
+                storeFile rootProject.file(ks)
+                storePassword signingProp('MUZI_KEYSTORE_PASSWORD')
+                keyAlias signingProp('MUZI_KEY_ALIAS') ?: 'muzi-tv'
+                keyPassword signingProp('MUZI_KEY_PASSWORD') ?: signingProp('MUZI_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingProp('MUZI_KEYSTORE')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packaging {
+        jniLibs {
+            // Android 6 卧室 MiTV4A 解压 so 更稳
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
- implementation 'androidx.media3:media3-exoplayer:1.3.1'
- implementation 'androidx.media3:media3-exoplayer-hls:1.3.1'
+    implementation 'androidx.media3:media3-exoplayer:1.3.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.3.1'
+    // bilibili ijkplayer 0.8.8（LGPL-2.1）。so 在 jniLibs，不含迅雷。
+    implementation files('libs/ijkplayer-java.jar')
 }

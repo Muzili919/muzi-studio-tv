@@ -1,0 +1,6 @@
+ijkplayer 0.8.8 (bilibili/ijkplayer)
+Java classes and native libraries libijkffmpeg.so, libijkplayer.so, libijksdl.so
+for armeabi-v7a and arm64-v8a.
+License: GNU LGPL 2.1 — https://www.gnu.org/licenses/lgpl-2.1.html
+Source: https://github.com/bilibili/ijkplayer
+These binaries are the upstream 0.8.8 build. Thunder/Xunlei libraries are not included.
