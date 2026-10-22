@@ -6,22 +6,16 @@
       "key": "cat_movie",
       "name": "电影",
       "type": 1,
-      "api": "https://cms-c.example.com/api.php/provide/vod/",
+      "api": "https://tv.example.com/tv/movie-region/",
       "searchable": 1,
       "changeable": 1,
       "quickSearch": 1,
       "categories": [
-        "动作片",
-        "喜剧片",
-        "恐怖片",
-        "科幻片",
-        "爱情片",
-        "剧情片",
-        "战争片",
-        "记录片",
-        "电影片",
-        "电影解说",
-        "短剧"
+        "国产片",
+        "港台片",
+        "日韩片",
+        "欧美片",
+        "其他"
       ]
     },
     {
