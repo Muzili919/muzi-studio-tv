@@ -11,6 +11,8 @@ local.properties
 *.pem
 *.pass
 .env*
+signing.env
+android/signing/
 # private
 evidence/
 screenshots/

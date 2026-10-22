@@ -13,11 +13,14 @@ A lightweight Android TV home (Android 6.0+ / API 23): a recommendation page wit
 ## 构建 / Build
 ```bash
 cd android
-./gradlew assembleRelease -PmuziBaseUrl=https://your.domain/tv -PmuziLibreUrl=https://libretv.your.domain
-# 可选签名 / optional signing:
+./gradlew assembleRelease
+# 更新清单默认 https://zhishixingqiu.top/tv/version.json
+# 覆盖 / override: -PmuziUpdateUrl=https://host/tv/version.json
+# 或 -PmuziBaseUrl=https://host/tv（自动加上 /version.json）
+# 签名 / signing: 仓库根 signing.env（gitignore），或
 # MUZI_KEYSTORE=/path/release.jks MUZI_KEYSTORE_PASSWORD=... MUZI_KEY_ALIAS=... ./gradlew assembleRelease
 ```
-`muziBaseUrl` 下应有 `version.json`、`live-example.m3u`、`sports/`（见 `deploy/`）。远程升级必须一直用同一把签名。
+默认更新源是现有站点 `https://zhishixingqiu.top/tv/`（`version.json` + `apk/muzi-studio-*.apk`）。远程升级必须一直用同一把签名。发布步骤见 `deploy/sync-tv.sh` 与 `INSTALL-FAMILY.md`。
 
 The base URL must serve `version.json`, the playlist and optional `sports/`. Always sign updates with the same key.
 

@@ -23,6 +23,7 @@ import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -129,6 +130,7 @@ public class MainActivity extends Activity {
     JSONArray episodes = new JSONArray();
     int currentEpisode = 0;
     int selected = 0;
+    static final int REQ_PICK_APK = 4101;
     float playbackSpeed = 1.0f;
     ExecutorService images = Executors.newFixedThreadPool(4);
     int shelfGeneration = 0;
@@ -342,6 +344,7 @@ public class MainActivity extends Activity {
         stopVideo();
         this.loadGeneration++;
         this.screen = "home";
+        if (this.selected < 0 || this.selected > 3) this.selected = 0;
         this.home = new Home();
         setContentView(this.home);
         this.home.requestFocus();
@@ -352,6 +355,13 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         showHome();
+    }
+
+    @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != REQ_PICK_APK || result != RESULT_OK || data == null || data.getData() == null) return;
+        installPickedApk(data.getData());
     }
 
     void openLibreWebsite() {
@@ -395,13 +405,13 @@ public class MainActivity extends Activity {
                 i = getPackageManager().resolveActivity(explicit, 0) != null ? explicit : getPackageManager().getLaunchIntentForPackage("com.fongmi.android.tv");
             }
             if (i == null) {
-                Toast.makeText(this, "FongMi 尚未安装", 0).show();
+                Toast.makeText(this, "尚未安装蜂蜜（FongMi）", 0).show();
             } else {
                 i.addFlags(268435456);
                 startActivity(i);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "FongMi 尚未安装", 0).show();
+            Toast.makeText(this, "尚未安装蜂蜜（FongMi）", 0).show();
         }
     }
 
@@ -409,33 +419,24 @@ public class MainActivity extends Activity {
         Toast.makeText(this, s, 1).show();
     }
 
+    /** Family dock: 0 蜂蜜, 1 YouTube, 2 全部应用, 3 设置. Live / HDMI / Tencent / Bilibili are not slots. */
     void openHomeItem(int n) {
+        if (n < 0 || n > 3) n = 0;
         this.selected = n;
         switch (n) {
             case 0:
                 openFongMi();
                 break;
             case 1:
-                launch("com.ktcp.video");
-                break;
-            case 2:
                 chooseYoutube();
                 break;
-            case 3:
-                BiliScreens.show(this);
-                break;
-            case 4:
-            case 8:
-                showLive();
-                break;
-            case 5:
-                showInputs();
-                break;
-            case 6:
+            case 2:
                 showApps();
                 break;
-            case 7:
-                showSettings();
+            case 3:
+                openSystemSettings();
+                break;
+            default:
                 break;
         }
     }
@@ -456,7 +457,14 @@ public class MainActivity extends Activity {
     }
 
     void chooseYoutube() {
-        String[] pkgs = {"com.google.android.youtube.tv", "com.teamsmart.videomanager.tv", "org.smarttube.stable", "com.google.android.youtube"};
+        String[] pkgs = {
+            "com.google.android.youtube.tv",
+            "com.google.android.youtube",
+            "com.teamsmart.videomanager.tv",
+            "org.smarttube.stable",
+            "com.liskovsoft.smartyoutubetv2",
+            "com.liskovsoft.smarttubetv"
+        };
         for (String p : pkgs) {
             try {
                 getPackageManager().getPackageInfo(p, 0);
@@ -465,7 +473,114 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
             }
         }
-        toast("YouTube 尚未安装，保留入口；需验证 Android 6 客户端及网络连接。");
+        String[] cats = {"android.intent.category.LEANBACK_LAUNCHER", "android.intent.category.LAUNCHER"};
+        for (String cat : cats) {
+            Intent q = new Intent("android.intent.action.MAIN").addCategory(cat);
+            for (ResolveInfo r : getPackageManager().queryIntentActivities(q, 0)) {
+                String pkg = r.activityInfo == null ? "" : r.activityInfo.packageName;
+                if (pkg.toLowerCase(Locale.ROOT).contains("youtube")) {
+                    launch(pkg);
+                    return;
+                }
+            }
+        }
+        toast("尚未安装 YouTube");
+    }
+
+    /** Opens a file manager when one is installed, otherwise the system package picker. */
+    void openInstallApps() {
+        String[] pkgs = {
+            "com.xiaomi.mitv.mediaexplorer",
+            "com.xiaomi.mitv.filemanager",
+            "com.android.fileexplorer",
+            "com.estrongs.android.pop",
+            "com.estrongs.android.pop.pro",
+            "com.cxinventor.file.explorer",
+            "com.alphainventor.filemanager",
+            "com.amaze.filemanager",
+            "com.lonelycatgames.Xplore",
+            "com.android.documentsui",
+            "com.google.android.documentsui",
+            "com.shafa.market",
+            "com.softwinner.TvdFileManager"
+        };
+        for (String p : pkgs) {
+            if (tryLaunch(p)) return;
+        }
+        String[] cats = {"android.intent.category.LEANBACK_LAUNCHER", "android.intent.category.LAUNCHER"};
+        for (String cat : cats) {
+            Intent q = new Intent("android.intent.action.MAIN").addCategory(cat);
+            for (ResolveInfo r : getPackageManager().queryIntentActivities(q, 0)) {
+                if (r.activityInfo == null) continue;
+                String pkg = r.activityInfo.packageName;
+                String label = "";
+                try { label = r.loadLabel(getPackageManager()).toString(); } catch (Exception ignored) { }
+                String blob = (pkg + " " + label).toLowerCase(Locale.ROOT);
+                boolean fileApp = blob.contains("filemanager") || blob.contains("fileexplorer") || blob.contains("documentsui")
+                        || label.contains("文件管理") || label.contains("文件浏览") || label.contains("沙发") || label.contains("安装器");
+                if (fileApp && tryLaunch(pkg)) return;
+            }
+        }
+        try {
+            Intent pick = new Intent("android.intent.action.GET_CONTENT");
+            pick.addCategory("android.intent.category.OPENABLE");
+            pick.setType("application/vnd.android.package-archive");
+            startActivityForResult(pick, REQ_PICK_APK);
+        } catch (Exception e) {
+            try {
+                Intent pick = new Intent("android.intent.action.GET_CONTENT");
+                pick.addCategory("android.intent.category.OPENABLE");
+                pick.setType("*/*");
+                startActivityForResult(Intent.createChooser(pick, "选择安装包"), REQ_PICK_APK);
+            } catch (Exception e2) {
+                toast("没有可用的文件管理或安装器");
+            }
+        }
+    }
+
+    boolean tryLaunch(String pkg) {
+        if (pkg == null || pkg.equals(getPackageName())) return false;
+        Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
+        if (i == null) i = getPackageManager().getLaunchIntentForPackage(pkg);
+        if (i == null) return false;
+        try {
+            startActivity(i);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    void installPickedApk(Uri uri) {
+        try {
+            if (Build.VERSION.SDK_INT >= 24) {
+                Intent view = new Intent("android.intent.action.VIEW");
+                view.setDataAndType(uri, "application/vnd.android.package-archive");
+                view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(view);
+                return;
+            }
+            File dir = getExternalCacheDir();
+            if (dir == null) dir = getCacheDir();
+            File out = new File(dir, "picked-install.apk");
+            InputStream in = getContentResolver().openInputStream(uri);
+            if (in == null) throw new IOException("empty");
+            FileOutputStream fos = new FileOutputStream(out);
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+            fos.close();
+            in.close();
+            out.setReadable(true, false);
+            dir.setReadable(true, false);
+            dir.setExecutable(true, false);
+            Intent view = new Intent("android.intent.action.VIEW");
+            view.setDataAndType(Uri.fromFile(out), "application/vnd.android.package-archive");
+            view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(view);
+        } catch (Exception e) {
+            toast("无法打开安装器");
+        }
     }
 
     /* renamed from: lambda$showApps$3$studio-muzi-tv-MainActivity, reason: not valid java name */
@@ -481,6 +596,13 @@ public class MainActivity extends Activity {
     void showApps() {
         page("全部应用");
         this.screen = "apps";
+        addButton(this.content, "安装应用", new Runnable() {
+            @Override
+            public void run() {
+                openInstallApps();
+            }
+        });
+        this.status.setText("「安装应用」固定在最上方，下面是已安装的应用。");
         ArrayList<ResolveInfo> all = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         String[] strArr = {"android.intent.category.LEANBACK_LAUNCHER", "android.intent.category.LAUNCHER"};
@@ -511,13 +633,17 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* renamed from: lambda$showSettings$5$studio-muzi-tv-MainActivity, reason: not valid java name */
-    /* synthetic */ void m1706lambda$showSettings$5$studiomuzitvMainActivity() {
+    void openSystemSettings() {
         try {
             startActivity(new Intent("android.settings.SETTINGS"));
         } catch (Exception e) {
             launch("com.xiaomi.mitv.settings");
         }
+    }
+
+    /* renamed from: lambda$showSettings$5$studio-muzi-tv-MainActivity, reason: not valid java name */
+    /* synthetic */ void m1706lambda$showSettings$5$studiomuzitvMainActivity() {
+        openSystemSettings();
     }
 
     /* renamed from: lambda$showSettings$9$studio-muzi-tv-MainActivity, reason: not valid java name */
@@ -2626,8 +2752,9 @@ public class MainActivity extends Activity {
         Home() {
             super(MainActivity.this);
             this.p = new Paint(3);
-            this.labels = new String[]{"FongMi", "腾讯视频", "YouTube", "哔哩哔哩", "电视直播", "外接设备", "全部应用", "设置", "直播频道"};
-            this.hit = new RectF[9];
+            // Fixed family dock (Gavin 2026-10-22). Do not add Tencent, Bilibili, LibreTV, live, or HDMI tiles.
+            this.labels = new String[]{"蜂蜜", "YouTube", "全部应用", "设置"};
+            this.hit = new RectF[4];
             this.sx = 1.0f;
             this.sy = 1.0f;
             this.regular = Typeface.create("sans-serif", 0);
@@ -2732,66 +2859,52 @@ public class MainActivity extends Activity {
             String now = new SimpleDateFormat("HH:mm", Locale.CHINA).format(new Date());
             txt(c, now, 1634.0f, 128.0f, 66.0f, -1, false);
             txt(c, new SimpleDateFormat("M月d日 EEEE", Locale.CHINA).format(new Date()), 1647.0f, 166.0f, 19.0f, -3092008, false);
-            box(c, new RectF(96.0f, 725.0f, 1824.0f, 950.0f), -1206839518, 28.0f);
-            // 0 FongMi, 1 腾讯, 2 YouTube, 3 哔哩, 4 直播, 5 HDMI
-            for (int i7 = 0; i7 < 6; i7++) {
-                float x2 = 148.0f + (i7 * 280.0f);
-                RectF tile = new RectF(x2, 745.0f, x2 + 214.0f, 885.0f);
+            box(c, new RectF(80.0f, 760.0f, 1840.0f, 1030.0f), -1206839518, 28.0f);
+            int slots = this.labels.length;
+            float tileW = 300.0f;
+            float gap = 48.0f;
+            float total = slots * tileW + (slots - 1) * gap;
+            float start = (1920.0f - total) / 2.0f;
+            for (int i7 = 0; i7 < slots; i7++) {
+                float x2 = start + i7 * (tileW + gap);
                 boolean focus = MainActivity.this.selected == i7;
-                if (focus) {
-                    tile = new RectF(x2 - 6.0f, 735.0f, x2 + 214.0f + 6.0f, 882.0f);
-                }
-                this.hit[i7] = new RectF(x2 - 6.0f, 728.0f, x2 + 214.0f + 6.0f, 946.0f);
-                int color = i7 == 0 ? -14774450
-                        : (i7 == 1 || i7 == 2) ? -657671
-                        : i7 == 3 ? -298343
-                        : i7 == 4 ? -14271146
-                        : -13617340;
-                box(c, tile, color, 17.0f);
+                RectF tile = focus
+                        ? new RectF(x2 - 8.0f, 792.0f, x2 + tileW + 8.0f, 968.0f)
+                        : new RectF(x2, 804.0f, x2 + tileW, 956.0f);
+                this.hit[i7] = new RectF(x2 - 8.0f, 784.0f, x2 + tileW + 8.0f, 1020.0f);
+                int color = i7 == 0 ? Color.rgb(176, 116, 32)
+                        : i7 == 1 ? Color.rgb(168, 42, 42)
+                        : i7 == 2 ? Color.rgb(36, 74, 116)
+                        : Color.rgb(54, 62, 76);
+                box(c, tile, color, 20.0f);
                 if (focus) {
                     this.p.setColor(-789249);
                     this.p.setStyle(Paint.Style.STROKE);
                     this.p.setStrokeWidth(4.0f);
-                    c.drawRoundRect(new RectF(tile.left - 5.0f, tile.top - 5.0f, tile.right + 5.0f, tile.bottom + 5.0f), 21.0f, 21.0f, this.p);
+                    c.drawRoundRect(new RectF(tile.left - 5.0f, tile.top - 5.0f, tile.right + 5.0f, tile.bottom + 5.0f), 24.0f, 24.0f, this.p);
                     this.p.setStyle(Paint.Style.FILL);
                 }
-                float cy = focus ? 807.0f : 815.0f;
-                if (i7 == 0) {
-                    drawFongMiMark(c, x2, cy);
-                } else if (i7 == 1) {
-                    tri(c, x2 + 62.0f, cy - 40.0f, 86.0f, 76.0f, -14632204);
-                    tri(c, x2 + 72.0f, cy - 31.0f, 66.0f, 58.0f, -11087994);
-                    tri(c, x2 + 84.0f, cy - 22.0f, 44.0f, 42.0f, -17355);
-                } else if (i7 == 2) {
-                    box(c, new RectF(x2 + 64.0f, cy - 32.0f, x2 + 140.0f, cy + 32.0f), -842187, 18.0f);
-                    tri(c, x2 + 94.0f, cy - 15.0f, 24.0f, 30.0f, -1);
-                } else if (i7 == 3) {
-                    txt(c, "哔哩", x2 + 58.0f, cy + 15.0f, 40.0f, -1, true);
-                } else if (i7 == 4) {
-                    txt(c, "LIVE", x2 + 52.0f, cy + 15.0f, 38.0f, -1, false);
-                } else {
-                    txt(c, "HDMI", x2 + 50.0f, cy + 13.0f, 32.0f, -1, true);
-                }
-                this.p.setTextSize(20.0f);
-                this.p.setTypeface(this.regular);
+                float cx = x2 + tileW / 2.0f;
+                float cy = focus ? 860.0f : 872.0f;
+                if (i7 == 0) drawFongMiMark(c, cx, cy);
+                else if (i7 == 1) drawYoutubeMark(c, cx, cy);
+                else if (i7 == 2) drawAppsMark(c, cx, cy);
+                else drawGear(c, cx, cy);
+                this.p.setTextSize(26.0f);
+                this.p.setTypeface(this.medium);
                 float tw = this.p.measureText(this.labels[i7]);
-                txt(c, this.labels[i7], x2 + ((214.0f - tw) / 2.0f), 928.0f, 20.0f, focus ? -1 : -3814700, false);
+                txt(c, this.labels[i7], x2 + ((tileW - tw) / 2.0f), 1004.0f, 26.0f, focus ? -1 : -2039584, true);
             }
-            for (int i8 = 6; i8 < this.labels.length; i8++) {
-                float x3 = ((i8 - 6) * 220) + 112;
-                this.hit[i8] = new RectF(x3 - 10.0f, 975.0f, 190.0f + x3, 1028.0f);
-                if (MainActivity.this.selected == i8) {
-                    box(c, this.hit[i8], -2142346366, 9.0f);
-                }
-                txt(c, this.labels[i8], x3, 1010.0f, 21.0f, -3090977, false);
-            }
-            txt(c, "← → 选择  ·  确认打开", 1480.0f, 1009.0f, 18.0f, -5788229, false);
+            this.p.setTextSize(18.0f);
+            this.p.setTypeface(this.regular);
+            String hint = "← → 选择    确认打开";
+            float hw = this.p.measureText(hint);
+            txt(c, hint, (1920.0f - hw) / 2.0f, 1064.0f, 18.0f, -5788229, false);
             c.restore();
         }
 
-        /** FongMi 主页图标：圆角方块 + 播放三角 + 短标签（替代丑陋 FM 字）。 */
-        void drawFongMiMark(Canvas c, float tileX, float cy) {
-            float cx = tileX + 107.0f;
+        /** 蜂蜜：圆角底板 + 播放三角。名字只出现在坞标签。 */
+        void drawFongMiMark(Canvas c, float cx, float cy) {
             RectF plate = new RectF(cx - 46.0f, cy - 36.0f, cx + 46.0f, cy + 20.0f);
             box(c, plate, -15231982, 16.0f);
             this.p.setColor(-1182206);
@@ -2806,7 +2919,42 @@ public class MainActivity extends Activity {
             play.lineTo(cx + 16.0f, cy - 9.0f);
             play.close();
             c.drawPath(play, this.p);
-            txt(c, "FongMi", cx - 34.0f, cy + 44.0f, 18.0f, -1, true);
+        }
+
+        void drawYoutubeMark(Canvas c, float cx, float cy) {
+            box(c, new RectF(cx - 48.0f, cy - 30.0f, cx + 48.0f, cy + 30.0f), Color.rgb(245, 245, 245), 14.0f);
+            tri(c, cx - 12.0f, cy - 16.0f, 28.0f, 32.0f, Color.rgb(200, 32, 32));
+        }
+
+        void drawAppsMark(Canvas c, float cx, float cy) {
+            float s = 22.0f;
+            float g = 10.0f;
+            float left = cx - s - (g / 2.0f);
+            float top = cy - s - (g / 2.0f);
+            for (int row = 0; row < 2; row++) {
+                for (int col = 0; col < 2; col++) {
+                    float l = left + col * (s + g);
+                    float t = top + row * (s + g);
+                    box(c, new RectF(l, t, l + s, t + s), -1, 4.0f);
+                }
+            }
+        }
+
+        void drawGear(Canvas c, float cx, float cy) {
+            this.p.setColor(-1);
+            this.p.setStyle(Paint.Style.STROKE);
+            this.p.setStrokeWidth(6.0f);
+            c.drawCircle(cx, cy, 22.0f, this.p);
+            this.p.setStyle(Paint.Style.FILL);
+            c.drawCircle(cx, cy, 6.0f, this.p);
+            this.p.setStrokeWidth(5.0f);
+            this.p.setStyle(Paint.Style.STROKE);
+            for (int i = 0; i < 4; i++) {
+                double a = i * Math.PI / 2.0;
+                c.drawLine(cx + (float) Math.cos(a) * 18.0f, cy + (float) Math.sin(a) * 18.0f,
+                        cx + (float) Math.cos(a) * 34.0f, cy + (float) Math.sin(a) * 34.0f, this.p);
+            }
+            this.p.setStyle(Paint.Style.FILL);
         }
 
         void tri(Canvas c, float x, float y, float w, float h, int color) {
@@ -2821,30 +2969,17 @@ public class MainActivity extends Activity {
         }
         @Override // android.view.View, android.view.KeyEvent.Callback
         public boolean onKeyDown(int key, KeyEvent e) {
-            final int row = 6;
+            int n = this.labels.length;
             int s = MainActivity.this.selected;
+            if (s < 0 || s >= n) s = 0;
             if (key == 22) {
-                if (s < row) {
-                    s = Math.min(row - 1, s + 1);
-                } else {
-                    s = Math.min(this.labels.length - 1, s + 1);
-                }
+                s = Math.min(n - 1, s + 1);
             } else if (key == 21) {
-                if (s < row) {
-                    s = Math.max(0, s - 1);
-                } else {
-                    s = Math.max(row, s - 1);
-                }
-            } else if (key == 20) {
-                if (s < row) {
-                    s = Math.min(2, (s * 3) / row) + row;
-                }
-            } else if (key == 19) {
-                if (s >= row) {
-                    s = Math.min(row - 1, ((s - row) * row) / 3);
-                }
+                s = Math.max(0, s - 1);
+            } else if (key == 19 || key == 20) {
+                return true;
             } else if (key == 23 || key == 66) {
-                MainActivity.this.openHomeItem(MainActivity.this.selected);
+                MainActivity.this.openHomeItem(s);
                 return true;
             } else {
                 return super.onKeyDown(key, e);
