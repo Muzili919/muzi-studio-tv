@@ -1,10 +1,10 @@
 {
   "studio": {
     "package": "studio.muzi.tv",
-    "versionCode": 100,
-    "versionName": "1.0.0",
-    "url": "https://tv.example.com/tv/apk/muzi-studio-1.0.0.apk",
-    "sha256": "<sha256-of-apk>"
+    "versionCode": 105,
+    "versionName": "1.1.4",
+    "url": "https://tv.example.com/tv/apk/muzi-studio-1.1.4.apk",
+    "sha256": "f33bc4831f9c875a91d166e6aa6b08ca728a0e5a791e2d103f8d2c39880b2b81"
   },
   "fongmi": {
     "package": "com.fongmi.android.tv",

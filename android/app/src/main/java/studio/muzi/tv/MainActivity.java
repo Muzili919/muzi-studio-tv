@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.TextureView;
@@ -115,7 +116,20 @@ public class MainActivity extends Activity {
     TextView status;
     Runnable ticker;
     TextView timeLabel;
-    ExoPlayer video;
+    PlayerBridge video;
+    TextureView playerSurface;
+    ScrollView sourceScroller;
+    LinearLayout sourcePanel;
+    Button engineButton;
+    List<PlayCandidate> candidates = new ArrayList<>();
+    int candidateIndex;
+    boolean sourcePanelOpen;
+    boolean candidatesEnriched;
+    boolean sourcesExhausted;
+    int failoverCount;
+    long playbackToken;
+    String activeMediaUrl = "";
+    static final int STUCK_SECONDS = 8;
     Handler ui = new Handler();
     ExecutorService io = Executors.newSingleThreadExecutor();
     String server = "";
@@ -556,6 +570,12 @@ public class MainActivity extends Activity {
             @Override // java.lang.Runnable
             public final void run() {
                 MainActivity.this.m1710lambda$showSettings$9$studiomuzitvMainActivity();
+            }
+        });
+        addButton(this.content, engineLabel() + "（点按切换，点播默认 Exo）", new Runnable() {
+            @Override public void run() {
+                toggleEngine();
+                showSettings();
             }
         });
         this.content.addView(text("星空桌面 · 主页键返回这里。旧桌面入口可通过电脑恢复。", 18));
@@ -1161,7 +1181,7 @@ public class MainActivity extends Activity {
     /* synthetic */ void m1654lambda$chooseSpeed$25$studiomuzitvMainActivity(float[] speeds, DialogInterface d, int n) {
         this.playbackSpeed = speeds[n];
         if (this.video != null) {
-            this.video.setPlaybackParameters(new PlaybackParameters(this.playbackSpeed, 1.0f));
+            this.video.setSpeed(this.liveMode ? 1.0f : this.playbackSpeed);
         }
         this.speedButton.setText("倍速 " + this.playbackSpeed + "×");
         d.dismiss();
@@ -1347,33 +1367,37 @@ public class MainActivity extends Activity {
         stopVideo();
         this.liveMode = false;
         this.currentEpisode = index;
+        this.candidatesEnriched = false;
+        this.sourcesExhausted = false;
+        this.failoverCount = 0;
         String ep = this.episodes.optString(index);
-        String url = ep.contains("$") ? ep.substring(ep.indexOf(36) + 1) : ep;
+        String url = episodeUrl(ep);
         final String title = this.currentDetail.optJSONObject("videoInfo").optString("title", "muzi.studio");
-        if (this.server == null || this.server.isEmpty()) {
-            page(title);
-            this.status.setText("正在为你挑选最快线路…");
-            final long gen = this.loadGeneration;
-            final int epi = index;
-            final String first = url;
-            this.io.execute(new Runnable() {
-                @Override public void run() {
-                    final java.util.List<MultiSource.Line> ls = MultiSource.rank(title, epi, first);
-                    ui.post(new Runnable() {
-                        @Override public void run() {
-                            if (gen != loadGeneration) return;
-                            MultiSource.lines = ls;
-                            MultiSource.current = 0;
-                            MultiSource.Line best = ls.isEmpty() ? null : ls.get(0);
-                            if (best != null) toast("线路「" + best.name + "」" + String.format(Locale.ROOT, "%.1f", best.mbps) + " Mbps，共 " + ls.size() + " 条");
-                            play(best == null ? first : best.url, title);
-                        }
-                    });
-                }
-            });
+        this.candidates = buildCandidates(index, url);
+        this.candidateIndex = 0;
+        if (this.server != null && !this.server.isEmpty()) {
+            play(url, title);
             return;
         }
-        play(url, title);
+        page(title);
+        this.status.setText("正在测速前 " + SourceProbe.FIRST_K + " 条线路…");
+        final long gen = this.loadGeneration;
+        this.io.execute(new Runnable() {
+            @Override public void run() {
+                SourceProbe.probeFirst(candidates, SourceProbe.FIRST_K);
+                SourceProbe.preferFastest(candidates, SourceProbe.FIRST_K);
+                ui.post(new Runnable() {
+                    @Override public void run() {
+                        if (gen != loadGeneration) return;
+                        candidateIndex = firstPlayable(candidates);
+                        PlayCandidate best = candidates.isEmpty() ? new PlayCandidate("当前", "", url) : candidates.get(candidateIndex);
+                        if (candidates.isEmpty()) candidates.add(best);
+                        toast("首选「" + best.cms + " · " + best.fromLabel() + "」" + best.statusLabel());
+                        play(best.url.isEmpty() ? url : best.url, title);
+                    }
+                });
+            }
+        });
     }
 
     String clock(long ms) {
@@ -1520,25 +1544,16 @@ public class MainActivity extends Activity {
         });
     }
 
-    /* JADX WARN: Removed duplicated region for block: B:38:0x0356  */
-    /* JADX WARN: Removed duplicated region for block: B:41:0x0388  */
-    /* JADX WARN: Removed duplicated region for block: B:43:? A[RETURN, SYNTHETIC] */
-    /* JADX WARN: Removed duplicated region for block: B:44:0x0358  */
-    /*
-        Code decompiled incorrectly, please refer to instructions dump.
-    */
     void play(final String sourceUrl, final String title) {
-        String mediaUrl;
-        String str;
         if (this.server != null && !this.server.isEmpty() && this.cookie.isEmpty()) {
             final boolean live = this.liveMode;
             final boolean direct = this.directLive;
             page(title);
             this.status.setText("正在连接 LibreTV…");
             final long gen = this.loadGeneration;
-            this.io.execute(new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda29
-                @Override // java.lang.Runnable
-                public final void run() {
+            this.io.execute(new Runnable() {
+                @Override
+                public void run() {
                     MainActivity.this.m1680lambda$play$39$studiomuzitvMainActivity(gen, live, direct, sourceUrl, title);
                 }
             });
@@ -1548,10 +1563,16 @@ public class MainActivity extends Activity {
         this.loadGeneration++;
         this.screen = "player";
         this.activeTitle = title;
+        if (this.liveMode || this.candidates == null || this.candidates.isEmpty()) {
+            this.candidates = new ArrayList<>();
+            this.candidates.add(new PlayCandidate(this.liveMode ? "直播" : "当前", this.liveMode ? "live" : "", sourceUrl));
+            this.candidateIndex = 0;
+            this.candidatesEnriched = true;
+        }
         final FrameLayout frame = new FrameLayout(this);
         frame.setBackgroundColor(0xFF000000);
-        final TextureView surface = new TextureView(this);
-        frame.addView(surface, new FrameLayout.LayoutParams(-1, -1, 17));
+        this.playerSurface = new TextureView(this);
+        frame.addView(this.playerSurface, new FrameLayout.LayoutParams(-1, -1, 17));
         this.playStatus = text(title + " · 正在缓冲…", 18);
         this.playStatus.setBackgroundColor(-1342177280);
         frame.addView(this.playStatus, new FrameLayout.LayoutParams(-1, -2, 48));
@@ -1569,20 +1590,20 @@ public class MainActivity extends Activity {
         this.seek.setMax(1000);
         this.seek.setKeyProgressIncrement(5);
         this.controls.addView(this.seek, new LinearLayout.LayoutParams(-1, dp(38.0f)));
-        this.seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() { // from class: studio.muzi.tv.MainActivity.1
-            @Override // android.widget.SeekBar.OnSeekBarChangeListener
-            public void onProgressChanged(SeekBar s, int p, boolean user) {
-                if (!user || MainActivity.this.video == null || !MainActivity.this.video.isCurrentMediaItemSeekable() || MainActivity.this.video.getDuration() <= 0) {
+        this.seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar s, int progress, boolean user) {
+                if (!user || video == null || !video.isCurrentMediaItemSeekable() || video.getDuration() <= 0) {
                     return;
                 }
-                MainActivity.this.video.seekTo((MainActivity.this.video.getDuration() * p) / 1000);
+                video.seekTo((video.getDuration() * progress) / 1000);
             }
 
-            @Override // android.widget.SeekBar.OnSeekBarChangeListener
+            @Override
             public void onStartTrackingTouch(SeekBar s) {
             }
 
-            @Override // android.widget.SeekBar.OnSeekBarChangeListener
+            @Override
             public void onStopTrackingTouch(SeekBar s) {
             }
         });
@@ -1596,53 +1617,65 @@ public class MainActivity extends Activity {
         this.markerScroller.addView(this.markerChips);
         this.controls.addView(this.markerScroller);
         LinearLayout row = new LinearLayout(this);
-        this.pauseButton = button("暂停 / 播放", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda30
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1681lambda$play$40$studiomuzitvMainActivity();
+        this.pauseButton = button("暂停 / 播放", new Runnable() {
+            @Override
+            public void run() {
+                m1681lambda$play$40$studiomuzitvMainActivity();
             }
         });
         row.addView(this.pauseButton);
-        row.addView(button(this.liveMode ? "频道" : "选集", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda31
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1682lambda$play$41$studiomuzitvMainActivity();
+        row.addView(button(this.liveMode ? "频道" : "选集", new Runnable() {
+            @Override
+            public void run() {
+                m1682lambda$play$41$studiomuzitvMainActivity();
             }
         }));
-        row.addView(button(this.liveMode ? "换频道" : "换源", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda32
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1683lambda$play$42$studiomuzitvMainActivity();
+        row.addView(button(this.liveMode ? "换频道" : "线路", new Runnable() {
+            @Override
+            public void run() {
+                if (liveMode) {
+                    m1683lambda$play$42$studiomuzitvMainActivity();
+                } else {
+                    toggleSourcePanel();
+                }
             }
         }));
         if (!this.liveMode) {
-            this.speedButton = button("倍速 " + this.playbackSpeed + "×", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda34
-                @Override // java.lang.Runnable
-                public final void run() {
-                    MainActivity.this.m1684lambda$play$43$studiomuzitvMainActivity();
+            this.speedButton = button("倍速 " + this.playbackSpeed + "×", new Runnable() {
+                @Override
+                public void run() {
+                    m1684lambda$play$43$studiomuzitvMainActivity();
                 }
             });
             row.addView(this.speedButton);
+            this.engineButton = button(engineLabel(), new Runnable() {
+                @Override
+                public void run() {
+                    toggleEngine();
+                }
+            });
+            row.addView(this.engineButton);
         }
-        row.addView(button("收起控制栏", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda35
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1685lambda$play$44$studiomuzitvMainActivity(surface);
+        final TextureView surface = this.playerSurface;
+        row.addView(button("收起控制栏", new Runnable() {
+            @Override
+            public void run() {
+                m1685lambda$play$44$studiomuzitvMainActivity(surface);
             }
         }));
         this.controls.addView(row);
         this.highlightActions = new LinearLayout(this);
         this.highlightActions.setVisibility(8);
-        this.highlightActions.addView(button("上一精彩", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda36
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1686lambda$play$45$studiomuzitvMainActivity();
+        this.highlightActions.addView(button("上一精彩", new Runnable() {
+            @Override
+            public void run() {
+                m1686lambda$play$45$studiomuzitvMainActivity();
             }
         }));
-        this.highlightActions.addView(button("下一精彩", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda37
-            @Override // java.lang.Runnable
-            public final void run() {
-                MainActivity.this.m1687lambda$play$46$studiomuzitvMainActivity();
+        this.highlightActions.addView(button("下一精彩", new Runnable() {
+            @Override
+            public void run() {
+                m1687lambda$play$46$studiomuzitvMainActivity();
             }
         }));
         TextView highlightHint = text("频道键 / 快进键也可跳转", 15);
@@ -1650,156 +1683,24 @@ public class MainActivity extends Activity {
         this.highlightActions.addView(highlightHint);
         this.controls.addView(this.highlightActions);
         frame.addView(this.controls, new FrameLayout.LayoutParams(-1, -2, 80));
+        this.sourceScroller = new ScrollView(this);
+        this.sourceScroller.setVisibility(8);
+        this.sourceScroller.setBackgroundColor(0xE610111C);
+        this.sourcePanel = new LinearLayout(this);
+        this.sourcePanel.setOrientation(1);
+        this.sourcePanel.setPadding(dp(12.0f), dp(12.0f), dp(12.0f), dp(12.0f));
+        this.sourceScroller.addView(this.sourcePanel);
+        FrameLayout.LayoutParams panelLp = new FrameLayout.LayoutParams(dp(420.0f), dp(460.0f), 8388629);
+        panelLp.setMargins(0, dp(48.0f), dp(16.0f), dp(80.0f));
+        frame.addView(this.sourceScroller, panelLp);
         setContentView(frame);
         getWindow().addFlags(128);
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", this.cookie);
-        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory().setUserAgent("MuziTV/0.10").setDefaultRequestProperties(headers).setConnectTimeoutMs(15000).setReadTimeoutMs(25000);
-        this.video = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).setLoadControl(new DefaultLoadControl.Builder().setBufferDurationsMs(60000, 180000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS, 10000).setTargetBufferBytes(67108864).setPrioritizeTimeOverSizeThresholds(false).build()).build();
-        this.video.setVideoTextureView(surface);
-        MultiSource.watch(this, title);
-        this.video.setAudioAttributes(new AudioAttributes.Builder().setUsage(1).setContentType(3).build(), true);
-        this.video.addListener(new Player.Listener() {
-            @Override
-            public void onPlaybackStateChanged(int state) {
-                if (MainActivity.this.video == null) {
-                    return;
-                }
-                Log.i(MainActivity.TAG, "PLAYER_STATE " + state + " duration=" + MainActivity.this.video.getDuration());
-                if (state == 3) {
-                    MainActivity.this.playStatus.setVisibility(8);
-                }
-                if (state == 2) {
-                    MainActivity.this.playStatus.setVisibility(0);
-                    MainActivity.this.playStatus.setText(title + " · 正在缓冲…");
-                }
-                if (state == 4) {
-                    MainActivity.this.playStatus.setVisibility(0);
-                    MainActivity.this.playStatus.setText("播放结束 · 可选集或换源");
-                    MainActivity.this.showControls();
-                }
-            }
-
-            @Override
-            public void onRenderedFirstFrame() {
-                Log.i(MainActivity.TAG, "FIRST_VIDEO_FRAME");
-            }
-
-            @Override
-            public void onVideoSizeChanged(VideoSize size) {
-                Log.i(MainActivity.TAG, "VIDEO_SIZE " + size.width + "x" + size.height);
-            }
-
-            @Override
-            public void onPlayerError(PlaybackException error) {
-                MainActivity.this.playStatus.setVisibility(0);
-                MainActivity.this.playStatus.setText("播放失败：" + error.getErrorCodeName() + " · 可换源重试");
-                MainActivity.this.showControls();
-                Log.e(MainActivity.TAG, "PLAY_ERROR " + error.getErrorCodeName(), error);
-            }
-        });
-        if (this.server == null || this.server.isEmpty()) {
-            mediaUrl = sourceUrl;
-        } else {
-            mediaUrl = this.server + (this.liveMode ? "/api/live/stream?url=" : "/api/proxy?url=") + enc(sourceUrl);
+        if (!this.liveMode && !this.candidatesEnriched) {
+            enrichFromOtherCms();
         }
-        MediaItem.Builder media = new MediaItem.Builder().setUri(mediaUrl);
-        if (!sourceUrl.toLowerCase(Locale.ROOT).contains("m3u8")) {
-            if (sourceUrl.toLowerCase(Locale.ROOT).contains(".mp4")) {
-                str = MimeTypes.VIDEO_MP4;
-            }
-            this.video.setMediaItem(media.build());
-            if (!this.liveMode && this.resumeAt > 0) {
-                this.video.seekTo(this.resumeAt);
-            }
-            this.resumeAt = 0L;
-            this.video.setPlaybackParameters(new PlaybackParameters(!this.liveMode ? 1.0f : this.playbackSpeed, 1.0f));
-            this.video.prepare();
-            this.video.play();
-            surface.setFocusable(true);
-            surface.setFocusableInTouchMode(true);
-            showControls();
-            this.ticker = new Runnable() { // from class: studio.muzi.tv.MainActivity.3
-                int ticks = 0;
-
-                @Override // java.lang.Runnable
-                public void run() {
-                    if (MainActivity.this.video == null) {
-                        return;
-                    }
-                    long pos = MainActivity.this.video.getCurrentPosition();
-                    long len = MainActivity.this.video.getDuration();
-                    MainActivity.this.timeLabel.setText(title + "   " + MainActivity.this.clock(pos) + " / " + (MainActivity.this.liveMode ? "直播" : MainActivity.this.clock(len)) + "   " + (MainActivity.this.video.isPlaying() ? "播放中" : "暂停 / 缓冲"));
-                    MainActivity.this.seek.setEnabled(MainActivity.this.video.isCurrentMediaItemSeekable() && len > 0);
-                    if (len > 0) {
-                        MainActivity.this.seek.setProgress((int) ((pos * 1000) / len));
-                        MainActivity.this.seek.setSecondaryProgress(MainActivity.this.video.getBufferedPercentage() * 10);
-                    }
-                    MainActivity.this.refreshHighlightDots(pos, len);
-                    MainActivity.this.pauseButton.setText(MainActivity.this.video.isPlaying() ? "暂停" : "播放");
-                    if (this.ticks % 5 == 0) {
-                        MainActivity.this.saveProgress();
-                    }
-                    int i = this.ticks;
-                    this.ticks = i + 1;
-                    if (i % 5 == 0) {
-                        Log.i(MainActivity.TAG, "PLAY_TICK pos=" + pos + " duration=" + len + " playing=" + MainActivity.this.video.isPlaying() + " bufferedMs=" + MainActivity.this.video.getTotalBufferedDuration() + " speed=" + MainActivity.this.video.getPlaybackParameters().speed + " audio=" + (MainActivity.this.video.getAudioFormat() != null ? MainActivity.this.video.getAudioFormat().sampleMimeType : "none"));
-                    }
-                    MainActivity.this.ui.postDelayed(this, 1000L);
-                }
-            };
-            this.ui.postDelayed(this.ticker, 1000L);
-            if (this.liveMode) {
-                loadHighlightsForPlayback(title);
-                return;
-            }
-            return;
-        }
-        str = MimeTypes.APPLICATION_M3U8;
-        media.setMimeType(str);
-        this.video.setMediaItem(media.build());
-        if (!this.liveMode) {
-            this.video.seekTo(this.resumeAt);
-        }
+        long resume = this.liveMode ? 0L : this.resumeAt;
         this.resumeAt = 0L;
-        this.video.setPlaybackParameters(new PlaybackParameters(!this.liveMode ? 1.0f : this.playbackSpeed, 1.0f));
-        this.video.prepare();
-        this.video.play();
-        surface.setFocusable(true);
-        surface.setFocusableInTouchMode(true);
-        showControls();
-        this.ticker = new Runnable() { // from class: studio.muzi.tv.MainActivity.3
-            int ticks = 0;
-
-            @Override // java.lang.Runnable
-            public void run() {
-                if (MainActivity.this.video == null) {
-                    return;
-                }
-                long pos = MainActivity.this.video.getCurrentPosition();
-                long len = MainActivity.this.video.getDuration();
-                MainActivity.this.timeLabel.setText(title + "   " + MainActivity.this.clock(pos) + " / " + (MainActivity.this.liveMode ? "直播" : MainActivity.this.clock(len)) + "   " + (MainActivity.this.video.isPlaying() ? "播放中" : "暂停 / 缓冲"));
-                MainActivity.this.seek.setEnabled(MainActivity.this.video.isCurrentMediaItemSeekable() && len > 0);
-                if (len > 0) {
-                    MainActivity.this.seek.setProgress((int) ((pos * 1000) / len));
-                    MainActivity.this.seek.setSecondaryProgress(MainActivity.this.video.getBufferedPercentage() * 10);
-                }
-                MainActivity.this.refreshHighlightDots(pos, len);
-                MainActivity.this.pauseButton.setText(MainActivity.this.video.isPlaying() ? "暂停" : "播放");
-                if (this.ticks % 5 == 0) {
-                    MainActivity.this.saveProgress();
-                }
-                int i = this.ticks;
-                this.ticks = i + 1;
-                if (i % 5 == 0) {
-                    Log.i(MainActivity.TAG, "PLAY_TICK pos=" + pos + " duration=" + len + " playing=" + MainActivity.this.video.isPlaying() + " bufferedMs=" + MainActivity.this.video.getTotalBufferedDuration() + " speed=" + MainActivity.this.video.getPlaybackParameters().speed + " audio=" + (MainActivity.this.video.getAudioFormat() != null ? MainActivity.this.video.getAudioFormat().sampleMimeType : "none"));
-                }
-                MainActivity.this.ui.postDelayed(this, 1000L);
-            }
-        };
-        this.ui.postDelayed(this.ticker, 1000L);
-        if (this.liveMode) {
-        }
+        startPlayback(sourceUrl, title, resume);
     }
 
     /* renamed from: lambda$play$40$studio-muzi-tv-MainActivity, reason: not valid java name */
@@ -1841,6 +1742,8 @@ public class MainActivity extends Activity {
             this.ui.removeCallbacks(this.previewTick);
         }
         this.previewTick = null;
+        this.playbackToken++;
+        this.sourcePanelOpen = false;
         if (this.video != null) {
             this.video.release();
             this.video = null;
@@ -1915,6 +1818,13 @@ public class MainActivity extends Activity {
         }
         if (this.screen.equals("search")) {
             m1698lambda$search$28$studiomuzitvMainActivity();
+            return;
+        }
+        if (this.screen.equals("player") && this.sourcePanelOpen) {
+            this.sourcePanelOpen = false;
+            if (this.sourceScroller != null) {
+                this.sourceScroller.setVisibility(View.GONE);
+            }
             return;
         }
         if (this.screen.equals("player")) {
@@ -2610,6 +2520,367 @@ public class MainActivity extends Activity {
         if (this.pauseButton != null) {
             this.pauseButton.setText(this.previewPlaying ? "暂停" : "播放");
         }
+    }
+
+
+    static String episodeUrl(String ep) {
+        if (ep == null) {
+            return "";
+        }
+        int dollar = ep.indexOf('$');
+        return (dollar >= 0 ? ep.substring(dollar + 1) : ep).trim();
+    }
+
+    List<PlayCandidate> buildCandidates(int episodeIndex, String fallbackUrl) {
+        List<PlayCandidate> out = new ArrayList<>();
+        String cms = this.currentDetail == null ? "当前" : this.currentDetail.optString("sourceName", "当前");
+        if (cms == null || cms.isEmpty()) {
+            cms = "当前";
+        }
+        JSONArray groups = this.currentDetail == null ? null : this.currentDetail.optJSONArray("playGroups");
+        if (groups != null) {
+            for (int i = 0; i < groups.length(); i++) {
+                JSONObject group = groups.optJSONObject(i);
+                if (group == null) {
+                    continue;
+                }
+                JSONArray eps = group.optJSONArray("episodes");
+                if (eps == null || eps.length() == 0) {
+                    continue;
+                }
+                int at = Math.min(Math.max(episodeIndex, 0), eps.length() - 1);
+                String url = episodeUrl(eps.optString(at));
+                if (url.startsWith("http://") || url.startsWith("https://")) {
+                    out.add(new PlayCandidate(cms, group.optString("from", ""), url));
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            String url = fallbackUrl;
+            if ((url == null || url.isEmpty()) && this.episodes != null && episodeIndex >= 0 && episodeIndex < this.episodes.length()) {
+                url = episodeUrl(this.episodes.optString(episodeIndex));
+            }
+            if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                String from = this.currentDetail == null ? "" : this.currentDetail.optString("playFrom", "");
+                out.add(new PlayCandidate(cms, from, url));
+            }
+        }
+        List<PlayCandidate> deduped = new ArrayList<>();
+        for (int i = 0; i < out.size(); i++) {
+            boolean dup = false;
+            for (int j = 0; j < deduped.size(); j++) {
+                if (deduped.get(j).url.equals(out.get(i).url)) {
+                    dup = true;
+                }
+            }
+            if (!dup) {
+                deduped.add(out.get(i));
+            }
+        }
+        return deduped;
+    }
+
+    int firstPlayable(List<PlayCandidate> list) {
+        if (list == null) {
+            return 0;
+        }
+        for (int i = 0; i < list.size(); i++) {
+            if (PlayCandidate.OK.equals(list.get(i).status)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    String playerEngine() {
+        return "ijk".equals(getPreferences(0).getString("player_engine", "exo")) ? "ijk" : "exo";
+    }
+
+    String engineLabel() {
+        return "ijk".equals(playerEngine()) ? "内核 IJK" : "内核 Exo";
+    }
+
+    void toggleEngine() {
+        String next = "ijk".equals(playerEngine()) ? "exo" : "ijk";
+        getPreferences(0).edit().putString("player_engine", next).apply();
+        toast("播放内核：" + ("ijk".equals(next) ? "IJK" : "ExoPlayer"));
+        if (this.engineButton != null) {
+            this.engineButton.setText(engineLabel());
+        }
+        if ("player".equals(this.screen) && this.activeMediaUrl != null && !this.activeMediaUrl.isEmpty()) {
+            long pos = 0L;
+            if (!this.liveMode && this.video != null) {
+                pos = this.video.getCurrentPosition();
+            }
+            startPlayback(this.activeMediaUrl, this.activeTitle, this.liveMode ? 0L : pos);
+        }
+    }
+
+    String resolveMedia(String sourceUrl) {
+        if (sourceUrl == null) {
+            return "";
+        }
+        if (this.server == null || this.server.isEmpty()) {
+            return sourceUrl;
+        }
+        return this.server + (this.liveMode ? "/api/live/stream?url=" : "/api/proxy?url=") + enc(sourceUrl);
+    }
+
+    void releasePlayerOnly() {
+        if (this.ticker != null) {
+            this.ui.removeCallbacks(this.ticker);
+        }
+        this.ticker = null;
+        this.playbackToken++;
+        if (this.video != null) {
+            this.video.release();
+            this.video = null;
+        }
+    }
+
+    void startPlayback(final String rawUrl, final String title, long resumeMs) {
+        releasePlayerOnly();
+        this.activeMediaUrl = rawUrl == null ? "" : rawUrl;
+        final long token = this.playbackToken;
+        Map<String, String> headers = new HashMap<>();
+        if (this.cookie != null && !this.cookie.isEmpty()) {
+            headers.put("Cookie", this.cookie);
+        }
+        final String mediaUrl = resolveMedia(this.activeMediaUrl);
+        if (this.playStatus != null) {
+            this.playStatus.setVisibility(0);
+            this.playStatus.setText(title + " · " + engineLabel() + " · 正在缓冲…");
+        }
+        try {
+            this.video = PlayerBridge.open(this, playerEngine(), this.playerSurface, headers, mediaUrl, this.liveMode ? 0L : resumeMs, this.liveMode ? 1.0f : this.playbackSpeed, new PlayerBridge.Listener() {
+                @Override
+                public void onPlaybackStateChanged(int state) {
+                    if (token != playbackToken || playStatus == null) {
+                        return;
+                    }
+                    if (state == PlayerBridge.STATE_READY) {
+                        playStatus.setVisibility(8);
+                    }
+                    if (state == PlayerBridge.STATE_BUFFERING) {
+                        playStatus.setVisibility(0);
+                        playStatus.setText(title + " · 正在缓冲…");
+                    }
+                    if (state == PlayerBridge.STATE_ENDED) {
+                        playStatus.setVisibility(0);
+                        playStatus.setText("播放结束 · 可选集或换源");
+                        showControls();
+                    }
+                }
+
+                @Override
+                public void onPlayerError(String code) {
+                    if (token != playbackToken) {
+                        return;
+                    }
+                    Log.e(TAG, "PLAY_ERROR " + code);
+                    onPlaybackFailed(code);
+                }
+            });
+        } catch (Throwable t) {
+            Log.e(TAG, "open player", t);
+            onPlaybackFailed(t.getClass().getSimpleName());
+            return;
+        }
+        if (this.video != null && this.video.fellBackToExo) {
+            toast("IJK 未能加载，已回退 Exo");
+        }
+        if (this.engineButton != null) {
+            this.engineButton.setText(engineLabel());
+        }
+        if (this.playerSurface != null) {
+            this.playerSurface.setFocusable(true);
+            this.playerSurface.setFocusableInTouchMode(true);
+        }
+        showControls();
+        startTicker(title, token);
+        if (this.liveMode) {
+            loadHighlightsForPlayback(title);
+        }
+        if (this.sourcePanelOpen) {
+            refreshSourceList();
+        }
+    }
+
+    void startTicker(final String title, final long token) {
+        this.ticker = new Runnable() {
+            int ticks;
+            int stuck;
+
+            @Override
+            public void run() {
+                if (video == null || token != playbackToken) {
+                    return;
+                }
+                long pos = video.getCurrentPosition();
+                long len = video.getDuration();
+                timeLabel.setText(title + "   " + clock(pos) + " / " + (liveMode ? "直播" : clock(len)) + "   " + (video.isPlaying() ? "播放中" : "暂停 / 缓冲"));
+                seek.setEnabled(video.isCurrentMediaItemSeekable() && len > 0);
+                if (len > 0) {
+                    seek.setProgress((int) ((pos * 1000) / len));
+                    seek.setSecondaryProgress(video.getBufferedPercentage() * 10);
+                }
+                refreshHighlightDots(pos, len);
+                pauseButton.setText(video.isPlaying() ? "暂停" : "播放");
+                if (ticks % 5 == 0) {
+                    saveProgress();
+                    Log.i(TAG, "PLAY_TICK pos=" + pos + " duration=" + len + " playing=" + video.isPlaying() + " bufferedMs=" + video.getTotalBufferedDuration() + " speed=" + video.getSpeed() + " audio=" + video.audioLabel() + " engine=" + video.engineName());
+                }
+                boolean buffering = video.getPlaybackState() == PlayerBridge.STATE_BUFFERING && video.getPlayWhenReady();
+                stuck = buffering ? stuck + 1 : 0;
+                ticks++;
+                if (stuck >= STUCK_SECONDS) {
+                    stuck = 0;
+                    onPlaybackFailed("stuck");
+                    return;
+                }
+                ui.postDelayed(this, 1000L);
+            }
+        };
+        this.ui.postDelayed(this.ticker, 1000L);
+    }
+
+    void onPlaybackFailed(String why) {
+        if (!"player".equals(this.screen) || this.sourcesExhausted) {
+            return;
+        }
+        if (this.failoverCount > this.candidates.size() + 1) {
+            this.sourcesExhausted = true;
+            return;
+        }
+        this.failoverCount++;
+        if (this.candidateIndex >= 0 && this.candidateIndex < this.candidates.size()) {
+            this.candidates.get(this.candidateIndex).status = PlayCandidate.FAIL;
+        }
+        int next = this.candidateIndex + 1;
+        while (next < this.candidates.size() && PlayCandidate.FAIL.equals(this.candidates.get(next).status)) {
+            next++;
+        }
+        if (next >= this.candidates.size()) {
+            this.sourcesExhausted = true;
+            if (this.playStatus != null) {
+                this.playStatus.setVisibility(0);
+                this.playStatus.setText("播放失败 · 线路已试完");
+            }
+            showControls();
+            if (this.sourcePanelOpen) {
+                refreshSourceList();
+            }
+            return;
+        }
+        toast("stuck".equals(why) ? "缓冲卡住，自动换下一条" : "播放失败，自动换下一条");
+        long pos = 0L;
+        if (!this.liveMode && this.video != null) {
+            pos = this.video.getCurrentPosition();
+        }
+        this.candidateIndex = next;
+        startPlayback(this.candidates.get(next).url, this.activeTitle, this.liveMode ? 0L : pos);
+    }
+
+    void toggleSourcePanel() {
+        this.sourcePanelOpen = !this.sourcePanelOpen;
+        if (this.sourceScroller != null) {
+            this.sourceScroller.setVisibility(this.sourcePanelOpen ? 0 : 8);
+        }
+        if (this.sourcePanelOpen) {
+            refreshSourceList();
+            if (this.sourcePanel != null && this.sourcePanel.getChildCount() > 1) {
+                this.sourcePanel.getChildAt(1).requestFocus();
+            }
+        }
+    }
+
+    void refreshSourceList() {
+        if (this.sourcePanel == null) {
+            return;
+        }
+        this.sourcePanel.removeAllViews();
+        this.sourcePanel.addView(text("线路 · CMS · play_from · 状态", 16));
+        for (int i = 0; i < this.candidates.size(); i++) {
+            final int idx = i;
+            PlayCandidate c = this.candidates.get(i);
+            String mark = i == this.candidateIndex ? "▶ " : "";
+            Button line = button(mark + c.cms + " · " + c.fromLabel() + " · " + c.statusLabel(), new Runnable() {
+                @Override
+                public void run() {
+                    switchToCandidate(idx);
+                }
+            });
+            line.setTextSize(15.0f);
+            this.sourcePanel.addView(line);
+        }
+        this.sourcePanel.addView(button("重新搜索其它 CMS", new Runnable() {
+            @Override
+            public void run() {
+                candidatesEnriched = false;
+                enrichFromOtherCms();
+                toast("正在检索其它源…");
+            }
+        }));
+        if (!this.liveMode) {
+            this.sourcePanel.addView(button("按片名再搜", new Runnable() {
+                @Override
+                public void run() {
+                    m1683lambda$play$42$studiomuzitvMainActivity();
+                }
+            }));
+        }
+    }
+
+    void switchToCandidate(int idx) {
+        if (idx < 0 || idx >= this.candidates.size()) {
+            return;
+        }
+        this.sourcesExhausted = false;
+        this.failoverCount = 0;
+        long pos = 0L;
+        if (!this.liveMode && this.video != null) {
+            pos = Math.max(0L, this.video.getCurrentPosition());
+        }
+        this.candidateIndex = idx;
+        PlayCandidate c = this.candidates.get(idx);
+        toast("切换「" + c.cms + " · " + c.fromLabel() + "」");
+        startPlayback(c.url, this.activeTitle, this.liveMode ? 0L : pos);
+    }
+
+    void enrichFromOtherCms() {
+        final String title = this.activeTitle;
+        final int episode = this.currentEpisode;
+        final List<PlayCandidate> snapshot = new ArrayList<>(this.candidates);
+        this.candidatesEnriched = true;
+        this.io.execute(new Runnable() {
+            @Override
+            public void run() {
+                final List<PlayCandidate> extra = SourceProbe.searchCms(title, episode, snapshot);
+                SourceProbe.probeFirst(extra, extra.size());
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (title == null || !title.equals(activeTitle) || episode != currentEpisode || !"player".equals(screen)) {
+                            return;
+                        }
+                        for (int i = 0; i < extra.size(); i++) {
+                            boolean dup = false;
+                            for (int j = 0; j < candidates.size(); j++) {
+                                if (candidates.get(j).url.equals(extra.get(i).url)) {
+                                    dup = true;
+                                }
+                            }
+                            if (!dup) {
+                                candidates.add(extra.get(i));
+                            }
+                        }
+                        if (sourcePanelOpen) {
+                            refreshSourceList();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     class Home extends View {

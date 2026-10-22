@@ -3,6 +3,7 @@ Description=muzi-tv sports CMS aggregator
 After=network.target
 [Service]
 ExecStart=/usr/bin/python3 /opt/muzi-tv/sports_cms.py
+Environment=MUZI_SPORTS_DB=/tmp/muzi-sports.db
 Restart=always
 User=nobody
 [Install]

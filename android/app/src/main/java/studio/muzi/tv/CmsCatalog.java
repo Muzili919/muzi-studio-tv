@@ -91,6 +91,7 @@ public final class CmsCatalog {
         public final String name;
         public final String pic;
         public final String playUrl;
+        public final String playFrom;
         public final int region;
         public final String remarks;
         public final double score;
@@ -102,6 +103,10 @@ public final class CmsCatalog {
         public final String year;
 
         public Item(String sourceKey, String sourceName, String sourceUrl, String id, String name, String typeName, String area, String year, String remarks, String pic, String playUrl, double score, long hits, long updatedAt, int region) {
+            this(sourceKey, sourceName, sourceUrl, id, name, typeName, area, year, remarks, pic, playUrl, "", score, hits, updatedAt, region);
+        }
+
+        public Item(String sourceKey, String sourceName, String sourceUrl, String id, String name, String typeName, String area, String year, String remarks, String pic, String playUrl, String playFrom, double score, long hits, long updatedAt, int region) {
             this.sourceKey = sourceKey;
             this.sourceName = sourceName;
             this.sourceUrl = sourceUrl;
@@ -113,6 +118,7 @@ public final class CmsCatalog {
             this.remarks = remarks;
             this.pic = pic;
             this.playUrl = playUrl;
+            this.playFrom = playFrom == null ? "" : playFrom;
             this.score = score;
             this.hits = hits;
             this.updatedAt = updatedAt;
@@ -124,7 +130,7 @@ public final class CmsCatalog {
         }
 
         public Item withPic(String nextPic) {
-            return new Item(this.sourceKey, this.sourceName, this.sourceUrl, this.id, this.name, this.typeName, this.area, this.year, this.remarks, nextPic == null ? "" : nextPic, this.playUrl, this.score, this.hits, this.updatedAt, this.region);
+            return new Item(this.sourceKey, this.sourceName, this.sourceUrl, this.id, this.name, this.typeName, this.area, this.year, this.remarks, nextPic == null ? "" : nextPic, this.playUrl, this.playFrom, this.score, this.hits, this.updatedAt, this.region);
         }
     }
 
@@ -286,7 +292,7 @@ public final class CmsCatalog {
                             long hits = Math.max(lng(o, "vod_hits"), Math.max(lng(o, "vod_hits_week"), lng(o, "vod_hits_month")));
                             String area = unescape(o.optString("vod_area", "")).trim();
                             try {
-                                out.add(new Item(sourceKey, sourceName, sourceUrl, id, name, typeName, area, o.optString("vod_year", "").trim(), unescape(o.optString("vod_remarks", "")).trim(), picture(o, sourceUrl), o.optString("vod_play_url", ""), score2, hits, parseTime(o.optString("vod_time", "")), regionOf(area)));
+                                out.add(new Item(sourceKey, sourceName, sourceUrl, id, name, typeName, area, o.optString("vod_year", "").trim(), unescape(o.optString("vod_remarks", "")).trim(), picture(o, sourceUrl), o.optString("vod_play_url", ""), o.optString("vod_play_from", ""), score2, hits, parseTime(o.optString("vod_time", "")), regionOf(area)));
                             } catch (Exception e2) {
                             }
                         }
@@ -593,6 +599,37 @@ public final class CmsCatalog {
     public static double animeSortScore(Item item) {
         double score = item.score;
         return animeRomance(item) ? score - 4.0d : (animeJapanese(item) && animeHype(item)) ? 0.6d + score : animeHype(item) ? 0.4d + score : animeJapanese(item) ? 0.2d + score : score;
+    }
+
+    public static final class PlayGroup {
+        public final String playFrom;
+        public final JSONArray episodes;
+
+        public PlayGroup(String playFrom, JSONArray episodes) {
+            this.playFrom = playFrom == null ? "" : playFrom;
+            this.episodes = episodes == null ? new JSONArray() : episodes;
+        }
+    }
+
+    /** 按 $$$ 拆开 vod_play_from / vod_play_url，保留每一条线路。 */
+    public static List<PlayGroup> playGroups(String playFrom, String playUrl) {
+        List<PlayGroup> out = new ArrayList<>();
+        if (playUrl == null || playUrl.trim().isEmpty()) {
+            return out;
+        }
+        String[] urls = playUrl.trim().split("\\$\\$\\$", -1);
+        String[] froms = playFrom == null ? new String[0] : playFrom.split("\\$\\$\\$", -1);
+        for (int i = 0; i < urls.length; i++) {
+            String name = i < froms.length ? froms[i].trim() : "";
+            if (name.isEmpty()) {
+                name = "线路" + (i + 1);
+            }
+            JSONArray eps = episodes(urls[i]);
+            if (eps.length() > 0) {
+                out.add(new PlayGroup(name, eps));
+            }
+        }
+        return out;
     }
 
     public static JSONArray episodes(String playUrl) {

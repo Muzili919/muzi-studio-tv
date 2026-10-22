@@ -1,6 +1,8 @@
 package studio.muzi.tv;
 
+import android.content.Intent;
 import android.graphics.Canvas;
+import android.net.Uri;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -50,9 +52,13 @@ final class DiscoverScreens {
         {"大陆综艺", "港台综艺", "日韩综艺", "欧美综艺"},
         {"日韩动漫", "国产动漫", "海外动漫", "欧美动漫", "港台动漫", "动画片"}
     };
-    /** 点播内部体育子类；默认斯诺克（源站台球类常含斯诺克）。 */
-    static final String[] SPORTS_CHIPS = {"足球", "篮球", "乒乓球", "斯诺克", "羽毛球", "网球", "台球"};
+    /** 一级赛事。乒乓球 / 网球 / 台球已去掉。 */
+    static final String[] SPORTS_CHIPS = {"斯诺克", "羽毛球", "足球", "篮球"};
     static final String SPORTS_DEFAULT = "斯诺克";
+    /** 二级年份轨。羽毛球不编造五年片库，空年只给说明。 */
+    static final String[] SPORTS_YEARS = {"全部", "2026", "2025", "2024", "2023", "2022", "更早"};
+    static final String BWF_YOUTUBE = "https://www.youtube.com/@BWF";
+    static final String BWF_SITE = "https://www.badmintonworld.tv/";
     static final String[] KINDS = {CmsCatalog.MOVIE, CmsCatalog.SERIES, CmsCatalog.VARIETY, CmsCatalog.ANIME};
     static final String[] LABELS = {"电影", "电视剧", "综艺", "动漫"};
     static final Map<String, Hit> CACHE = Collections.synchronizedMap(new LinkedHashMap<String, Hit>(32, 0.75f, true) { // from class: studio.muzi.tv.DiscoverScreens.1
@@ -307,28 +313,51 @@ final class DiscoverScreens {
         final LinearLayout chips = new LinearLayout(a);
         chips.setOrientation(LinearLayout.HORIZONTAL);
         a.posters.addView(chips);
+        final LinearLayout years = new LinearLayout(a);
+        years.setOrientation(LinearLayout.HORIZONTAL);
+        a.posters.addView(years);
         final LinearLayout host = new LinearLayout(a);
         host.setOrientation(LinearLayout.VERTICAL);
         host.setClipChildren(false);
         a.posters.addView(host);
         final String[] selected = {initialChip == null ? SPORTS_DEFAULT : initialChip};
+        final String[] year = {"全部"};
+        final int[] req = {0};
         for (int i = 0; i < SPORTS_CHIPS.length; i++) {
             final String chip = SPORTS_CHIPS[i];
             Button b = a.button(chip, new Runnable() {
                 @Override public void run() {
                     selected[0] = chip;
+                    year[0] = "全部";
                     markSportChips(chips, chip);
-                    fetchSports(a, gen, shelf, host, chip);
+                    markSportChips(years, year[0]);
+                    fetchSports(a, gen, shelf, host, chip, year[0], ++req[0], req);
                 }
             });
-            b.setTextSize(14.0f);
-            b.setPadding(a.dp(12.0f), a.dp(6.0f), a.dp(12.0f), a.dp(6.0f));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, a.dp(44.0f));
-            lp.setMargins(a.dp(4.0f), a.dp(8.0f), a.dp(4.0f), a.dp(8.0f));
+            b.setTextSize(16.0f);
+            b.setPadding(a.dp(14.0f), a.dp(8.0f), a.dp(14.0f), a.dp(8.0f));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, a.dp(48.0f));
+            lp.setMargins(a.dp(4.0f), a.dp(4.0f), a.dp(4.0f), a.dp(2.0f));
             chips.addView(b, lp);
         }
+        for (int i = 0; i < SPORTS_YEARS.length; i++) {
+            final String y = SPORTS_YEARS[i];
+            Button b = a.button(y, new Runnable() {
+                @Override public void run() {
+                    year[0] = y;
+                    markSportChips(years, y);
+                    fetchSports(a, gen, shelf, host, selected[0], y, ++req[0], req);
+                }
+            });
+            b.setTextSize(13.0f);
+            b.setPadding(a.dp(10.0f), a.dp(4.0f), a.dp(10.0f), a.dp(4.0f));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, a.dp(40.0f));
+            lp.setMargins(a.dp(4.0f), a.dp(2.0f), a.dp(4.0f), a.dp(6.0f));
+            years.addView(b, lp);
+        }
         markSportChips(chips, selected[0]);
-        fetchSports(a, gen, shelf, host, selected[0]);
+        markSportChips(years, year[0]);
+        fetchSports(a, gen, shelf, host, selected[0], year[0], ++req[0], req);
     }
 
     private static void markSportChips(LinearLayout chips, String selected) {
@@ -341,9 +370,15 @@ final class DiscoverScreens {
         }
     }
 
-    private static void fetchSports(final MainActivity a, final long gen, final int shelf, final LinearLayout host, final String chip) {
+    private static void fetchSports(final MainActivity a, final long gen, final int shelf, final LinearLayout host, final String chip, final String year, final int mine, final int[] req) {
         host.removeAllViews();
-        final TextView note = a.text("正在检索「" + chip + "」… 斯诺克优先量子/暴风（新赛季列表），年份看标题与 vod_year。", 15);
+        final String heading = chip + " · " + year;
+        if ("羽毛球".equals(chip)) {
+            host.addView(a.text("羽毛球没有五年完整回放。列表只显示源里真实搜到的碎片，不会按年编造场次。官方集锦请打开 BWF / YouTube。", 15));
+            addExternalLink(a, host, "BWF YouTube", BWF_YOUTUBE);
+            addExternalLink(a, host, "BadmintonWorld.tv", BWF_SITE);
+        }
+        final TextView note = a.text("正在检索「" + heading + "」…", 15);
         host.addView(note);
         final LinearLayout rows = new LinearLayout(a);
         rows.setOrientation(LinearLayout.VERTICAL);
@@ -352,9 +387,13 @@ final class DiscoverScreens {
         final List<CmsCatalog.Item> items = new ArrayList<>();
         final int[] left = {SOURCES.length};
         final List<String> failed = new ArrayList<>();
-        final String[] queries = sportQueries(chip);
+        final String[] queries = sportQueries(chip, year);
         final int[] order = sportsSourceOrder(chip);
         left[0] = order.length;
+        if (order.length == 0) {
+            note.setText(emptySports(chip, year, failed));
+            return;
+        }
         for (int s = 0; s < order.length; s++) {
             final int index = order[s];
             run(a, new Runnable() {
@@ -367,7 +406,7 @@ final class DiscoverScreens {
                             String body = cachedGet(query(SOURCES[index][2], "ac=videolist&wd=" + a.enc(q) + "&pg=1"));
                             List<CmsCatalog.Item> parsed = CmsCatalog.parse(body, SOURCES[index][0], SOURCES[index][1], SOURCES[index][2]);
                             for (CmsCatalog.Item it : parsed) {
-                                if (keepSportItem(it, chip)) {
+                                if (keepSportItem(it, chip) && yearMatch(it, year)) {
                                     batch.add(it);
                                 }
                             }
@@ -382,7 +421,7 @@ final class DiscoverScreens {
                     final List<CmsCatalog.Item> found = batch;
                     a.ui.post(new Runnable() {
                         @Override public void run() {
-                            if (gen != a.loadGeneration || shelf != a.shelfGeneration) {
+                            if (gen != a.loadGeneration || shelf != a.shelfGeneration || mine != req[0]) {
                                 return;
                             }
                             if (failedName != null && !failed.contains(failedName)) {
@@ -393,37 +432,36 @@ final class DiscoverScreens {
                             if (left[0] > 0) {
                                 return;
                             }
-                            List<CmsCatalog.Item> ranked = rankSports(CmsCatalog.dedupe(items), chip);
+                            List<CmsCatalog.Item> ranked = rankSports(CmsCatalog.dedupe(items));
                             rows.removeAllViews();
                             if (ranked.isEmpty()) {
-                                note.setText("没有找到可播的「" + chip + "」。斯诺克源站多为 2023–2024 旧赛；若没有 2025–2026 不会伪造年份。"
-                                        + (failed.isEmpty() ? "" : (" 失败源：" + failed)));
-                                a.status.setText("体育 · 无结果");
+                                note.setText(emptySports(chip, year, failed));
+                                a.status.setText(heading + " · 暂无");
+                                if (!"全部".equals(year)) {
+                                    a.addButton(host, "回到「全部」", new Runnable() {
+                                        @Override public void run() {
+                                            yearBack(a, gen, shelf, host, chip, req);
+                                        }
+                                    });
+                                }
                                 return;
                             }
-                            int y26 = 0, y25 = 0, yOther = 0;
-                            for (CmsCatalog.Item it : ranked) {
-                                int y = titleYear(it);
-                                if (y >= 2026) y26++;
-                                else if (y >= 2025) y25++;
-                                else yOther++;
-                            }
-                            note.setText("共 " + ranked.size() + " 条（标题年 2026:" + y26 + " / 2025:" + y25 + " / 更早或未知:" + yOther
-                                    + "）。按年份优先再按更新时间。斯诺克也会搜「台球」。"
-                                    + (failed.isEmpty() ? "" : (" 失败：" + failed)));
-                            a.status.setText("体育 · " + chip + " · " + ranked.size());
-                            // 简单一行海报
-                            LinearLayout row = new LinearLayout(a);
-                            row.setOrientation(LinearLayout.HORIZONTAL);
-                            row.setClipChildren(false);
-                            HorizontalScrollView sc = new HorizontalScrollView(a);
-                            sc.setHorizontalScrollBarEnabled(false);
-                            sc.addView(row);
-                            rows.addView(a.text(chip + " · 最新优先", 18));
-                            rows.addView(sc);
-                            int n = Math.min(ranked.size(), 24);
-                            for (int i = 0; i < n; i++) {
-                                addSportCard(a, row, ranked.get(i), gen);
+                            note.setText(heading + " · 共 " + ranked.size() + " 场 · 按日期 / 年份从新到旧"
+                                    + (failed.isEmpty() ? "" : (" · 失败：" + failed)));
+                            a.status.setText("体育 · " + heading + " · " + ranked.size());
+                            rows.addView(a.text(heading, 18));
+                            int n = Math.min(ranked.size(), 36);
+                            for (int start = 0; start < n; start += 6) {
+                                LinearLayout row = new LinearLayout(a);
+                                row.setOrientation(LinearLayout.HORIZONTAL);
+                                row.setClipChildren(false);
+                                HorizontalScrollView sc = new HorizontalScrollView(a);
+                                sc.setHorizontalScrollBarEnabled(false);
+                                sc.addView(row);
+                                rows.addView(sc);
+                                for (int i = start; i < Math.min(n, start + 6); i++) {
+                                    addSportCard(a, row, ranked.get(i), gen);
+                                }
                             }
                         }
                     });
@@ -432,28 +470,97 @@ final class DiscoverScreens {
         }
     }
 
-    private static String[] sportQueries(String chip) {
-        if ("斯诺克".equals(chip)) {
-            return new String[]{"斯诺克", "台球"};
+    private static void yearBack(final MainActivity a, final long gen, final int shelf, final LinearLayout host, final String chip, final int[] req) {
+        ViewParent parent = host.getParent();
+        if (!(parent instanceof android.view.ViewGroup)) {
+            fetchSports(a, gen, shelf, host, chip, "全部", ++req[0], req);
+            return;
         }
-        if ("台球".equals(chip)) {
-            return new String[]{"台球", "斯诺克"};
+        android.view.ViewGroup posters = (android.view.ViewGroup) parent;
+        for (int i = 0; i < posters.getChildCount(); i++) {
+            if (posters.getChildAt(i) instanceof LinearLayout) {
+                LinearLayout row = (LinearLayout) posters.getChildAt(i);
+                if (row.getChildCount() > 0 && row.getChildAt(0) instanceof Button && "全部".equals(((Button) row.getChildAt(0)).getText().toString())) {
+                    markSportChips(row, "全部");
+                    break;
+                }
+            }
         }
+        fetchSports(a, gen, shelf, host, chip, "全部", ++req[0], req);
+    }
+
+    private static String emptySports(String chip, String year, List<String> failed) {
+        String fail = failed.isEmpty() ? "" : (" 失败源：" + failed);
         if ("羽毛球".equals(chip)) {
-            return new String[]{"羽毛球", "羽毛球公开赛", "羽联", "苏迪曼杯", "尤伯杯"};
+            return "该年暂无索引。羽毛球做不到五年回放，这里不会补假场次。" + fail;
+        }
+        if ("全部".equals(year)) {
+            return "没有找到可播的「" + chip + "」。没有年份的条目不会被算进某一季。" + fail;
+        }
+        return "该年暂无索引。可以回到「全部」看已收录的场次。" + fail;
+    }
+
+    private static void addExternalLink(final MainActivity a, LinearLayout host, String label, final String url) {
+        a.addButton(host, label, new Runnable() {
+            @Override public void run() {
+                try {
+                    a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                } catch (Exception e) {
+                    a.toast("没有可打开该链接的应用");
+                }
+            }
+        });
+    }
+
+    private static String[] sportQueries(String chip, String year) {
+        if ("羽毛球".equals(chip)) {
+            if ("全部".equals(year)) {
+                return new String[]{"羽毛球", "苏迪曼杯", "尤伯杯", "汤姆斯杯", "全英公开赛"};
+            }
+            if ("更早".equals(year)) {
+                return new String[]{"羽毛球2021", "羽毛球2020", "羽毛球奥运"};
+            }
+            return new String[]{"羽毛球" + year, "苏迪曼杯" + year};
+        }
+        if ("斯诺克".equals(chip)) {
+            if ("全部".equals(year)) {
+                return new String[]{"斯诺克", "斯诺克2026", "斯诺克2025", "斯诺克2024", "斯诺克2023", "斯诺克2022", "世锦赛", "英锦赛"};
+            }
+            if ("更早".equals(year)) {
+                return new String[]{"斯诺克2021", "斯诺克2020", "世锦赛2021", "英锦赛2021"};
+            }
+            return new String[]{"斯诺克" + year, "世锦赛" + year, "英锦赛" + year};
+        }
+        if ("足球".equals(chip)) {
+            if ("全部".equals(year)) {
+                return new String[]{"足球", "英超", "世界杯", "欧洲杯", "足球2024", "足球2023", "世界杯2022"};
+            }
+            if ("更早".equals(year)) {
+                return new String[]{"足球2021", "欧洲杯2021", "足球2020"};
+            }
+            return new String[]{"足球" + year, "英超" + year, "世界杯" + year, "欧洲杯" + year};
+        }
+        if ("篮球".equals(chip)) {
+            if ("全部".equals(year)) {
+                return new String[]{"篮球", "NBA", "CBA", "篮球2025", "篮球2024", "NBA2023"};
+            }
+            if ("更早".equals(year)) {
+                return new String[]{"篮球2021", "NBA2021", "CBA2021"};
+            }
+            return new String[]{"篮球" + year, "NBA" + year, "CBA" + year};
         }
         return new String[]{chip};
     }
 
-    /** 斯诺克/台球：量子、暴风列表新；红牛台球几乎全是 2023。足球篮球：红牛优先。 */
+    /** 足球/篮球量子优先（深页在量子）。斯诺克 lz → bf。羽球多源但接受空洞。 */
     private static int[] sportsSourceOrder(String chip) {
         String[] prefer;
-        if ("斯诺克".equals(chip) || "台球".equals(chip)) {
+        if ("足球".equals(chip) || "篮球".equals(chip)) {
+            prefer = new String[]{"lz", "bf", "hn", "360", "wj", "ff"};
+        } else if ("斯诺克".equals(chip)) {
             prefer = new String[]{"lz", "bf", "360", "wj", "hn", "ff"};
         } else if ("羽毛球".equals(chip)) {
-            prefer = new String[]{"lz", "bf", "wj", "hn", "360", "ff"};
-        } else if ("足球".equals(chip) || "篮球".equals(chip)) {
-            prefer = new String[]{"hn", "lz", "bf", "360", "wj", "ff"};
+            prefer = new String[]{"hn", "lz", "bf", "wj", "360", "ff"};
         } else {
             prefer = new String[]{"lz", "bf", "hn", "360", "wj", "ff"};
         }
@@ -480,22 +587,40 @@ final class DiscoverScreens {
         if (it == null || it.name == null) return false;
         String name = it.name;
         String type = it.typeName == null ? "" : it.typeName;
-        // 过滤动漫/动画误伤（如排球少年一类）
+        if ("skip".equals(CmsCatalog.kindOf(type))) return false;
         if (type.contains("动漫") || type.contains("动画") || name.contains("少年") || name.contains("动漫")) {
             return false;
         }
-        if ("斯诺克".equals(chip) || "台球".equals(chip)) {
-            return name.contains("斯诺克") || name.contains("台球") || type.contains("台球") || type.contains("斯诺克") || type.contains("体育");
+        if ("斯诺克".equals(chip)) {
+            return name.contains("斯诺克") || type.contains("斯诺克") || name.contains("世锦赛") || name.contains("英锦赛") || name.contains("大师赛");
         }
         if ("羽毛球".equals(chip)) {
-            // 排除明显影视剧；保留公开赛/羽联/杯赛等
             if (name.contains("横扫羽毛球场") || name.contains("老爸") || type.contains("剧") || type.contains("电影")) {
                 return false;
             }
             return name.contains("羽毛球") || name.contains("羽联") || name.contains("苏迪曼") || name.contains("尤伯")
-                    || name.contains("汤姆斯") || type.contains("羽毛球") || type.contains("体育");
+                    || name.contains("汤姆斯") || name.contains("全英") || type.contains("羽毛球");
         }
-        return name.contains(chip) || type.contains(chip) || type.contains("体育");
+        if ("足球".equals(chip)) {
+            return name.contains("足球") || type.contains("足球") || name.contains("英超") || name.contains("西甲")
+                    || name.contains("意甲") || name.contains("德甲") || name.contains("法甲") || name.contains("中超")
+                    || name.contains("欧冠") || name.contains("世界杯") || name.contains("欧洲杯");
+        }
+        if ("篮球".equals(chip)) {
+            return name.contains("篮球") || type.contains("篮球") || name.contains("NBA") || name.contains("CBA") || name.contains("WNBA");
+        }
+        return name.contains(chip) || type.contains(chip);
+    }
+
+    private static boolean yearMatch(CmsCatalog.Item it, String year) {
+        if (year == null || "全部".equals(year)) return true;
+        int y = titleYear(it);
+        if ("更早".equals(year)) return y > 0 && y <= 2021;
+        try {
+            return y == Integer.parseInt(year);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static int titleYear(CmsCatalog.Item it) {
@@ -518,30 +643,17 @@ final class DiscoverScreens {
         return best;
     }
 
-    private static int sportSourcePriority(String key) {
-        if ("lz".equals(key)) return 0;
-        if ("bf".equals(key)) return 1;
-        if ("360".equals(key) || "wj".equals(key)) return 2;
-        if ("hn".equals(key)) return 3;
-        return 4;
-    }
-
-    private static List<CmsCatalog.Item> rankSports(List<CmsCatalog.Item> items, String chip) {
+    /** 开赛日期（更新时间）降序；没有日期则按标题年份降序。未知年份靠后。 */
+    private static List<CmsCatalog.Item> rankSports(List<CmsCatalog.Item> items) {
         List<CmsCatalog.Item> copy = new ArrayList<>(items);
         Collections.sort(copy, new java.util.Comparator<CmsCatalog.Item>() {
             @Override public int compare(CmsCatalog.Item a, CmsCatalog.Item b) {
                 int ya = titleYear(a);
                 int yb = titleYear(b);
-                // 2025/2026 优先桶
-                int ba = ya >= 2026 ? 3 : ya >= 2025 ? 2 : ya >= 2024 ? 1 : 0;
-                int bb = yb >= 2026 ? 3 : yb >= 2025 ? 2 : yb >= 2024 ? 1 : 0;
-                if (ba != bb) return bb - ba;
+                if (ya == 0 && yb != 0) return 1;
+                if (yb == 0 && ya != 0) return -1;
                 if (ya != yb) return yb - ya;
                 if (a.updatedAt != b.updatedAt) return a.updatedAt > b.updatedAt ? -1 : 1;
-                // 列表新源优先（量子/暴风）；播放可用性另议
-                int pa = sportSourcePriority(a.sourceKey);
-                int pb = sportSourcePriority(b.sourceKey);
-                if (pa != pb) return pa - pb;
                 return 0;
             }
         });
@@ -700,7 +812,7 @@ final class DiscoverScreens {
         }
         if (tab == 4) {
             a.posters.addView(a.text("体育", 22));
-            a.posters.addView(a.text("点播内体育：斯诺克/台球优先量子+暴风（列表有 2025–2026）；足球篮球仍可用红牛。按标题年份再按更新时间。注意：量子/暴风斯诺克播放链偶发 404。", 15));
+            a.posters.addView(a.text("先选赛事，再按年份看回放。足球 / 篮球 / 斯诺克大约能覆盖 2022–2026；羽毛球没有五年片库，不会编造场次。", 15));
             loadSports(a, gen, shelf, SPORTS_DEFAULT);
             return;
         }
@@ -1246,6 +1358,17 @@ final class DiscoverScreens {
             JSONObject detail = new JSONObject();
             detail.put("videoInfo", info);
             detail.put("episodes", eps);
+            detail.put("sourceName", item.sourceName);
+            detail.put("playFrom", item.playFrom == null ? "" : item.playFrom);
+            detail.put("playUrl", item.playUrl == null ? "" : item.playUrl);
+            JSONArray groups = new JSONArray();
+            for (CmsCatalog.PlayGroup g : CmsCatalog.playGroups(item.playFrom, item.playUrl)) {
+                JSONObject one = new JSONObject();
+                one.put("from", g.playFrom);
+                one.put("episodes", g.episodes);
+                groups.put(one);
+            }
+            detail.put("playGroups", groups);
             a.currentDetail = detail;
             a.episodes = eps;
             if (eps.length() == 0) {
