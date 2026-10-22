@@ -1,26 +1,48 @@
 plugins { id 'com.android.application' }
+
+def signingProps = new java.util.Properties()
+def signingFile = rootProject.file('../signing.env')
+if (!signingFile.exists()) signingFile = rootProject.file('signing.env')
+if (signingFile.exists()) signingFile.withReader('UTF-8') { signingProps.load(it) }
+
+def prop = { String key ->
+    def env = System.getenv(key)
+    if (env) return env
+    return signingProps.getProperty(key)
+}
+
+def muziBase = (project.findProperty('muziBaseUrl') ?: 'https://zhishixingqiu.top/tv').toString().replaceAll(/\/+$/, '')
+def muziUpdate = (project.findProperty('muziUpdateUrl') ?: (muziBase + '/version.json')).toString()
+
 android {
  namespace 'studio.muzi.tv'
  compileSdk 34
+ buildFeatures { buildConfig true }
  defaultConfig {
   applicationId 'studio.muzi.tv'
   minSdk 23
   targetSdk 34
-  versionCode 104
-  versionName '1.1.3'
+  versionCode 105
+  versionName '1.1.4'
+  buildConfigField 'String', 'UPDATE_URL', '"' + muziUpdate.replace('\\', '\\\\').replace('"', '\\"') + '"'
  }
  signingConfigs {
   release {
-   // Signing via env vars; no keystore or passwords in the repo
-   if (System.getenv('MUZI_KEYSTORE')) {
-    storeFile file(System.getenv('MUZI_KEYSTORE'))
-    storePassword System.getenv('MUZI_KEYSTORE_PASSWORD')
-    keyAlias System.getenv('MUZI_KEY_ALIAS') ?: 'muzi-tv'
-    keyPassword System.getenv('MUZI_KEY_PASSWORD') ?: System.getenv('MUZI_KEYSTORE_PASSWORD')
+   def store = prop('MUZI_KEYSTORE')
+   if (store) {
+    storeFile file(store)
+    storePassword prop('MUZI_KEYSTORE_PASSWORD')
+    keyAlias prop('MUZI_KEY_ALIAS') ?: 'muzi-tv'
+    keyPassword prop('MUZI_KEY_PASSWORD') ?: prop('MUZI_KEYSTORE_PASSWORD')
    }
   }
  }
- buildTypes { release { minifyEnabled false; if (System.getenv('MUZI_KEYSTORE')) signingConfig signingConfigs.release } }
+ buildTypes {
+  release {
+   minifyEnabled false
+   if (prop('MUZI_KEYSTORE')) signingConfig signingConfigs.release
+  }
+ }
  compileOptions {
   sourceCompatibility JavaVersion.VERSION_1_8
   targetCompatibility JavaVersion.VERSION_1_8
