@@ -13,12 +13,12 @@
 
 签名发布包：
 
-- 文件名：`muzi-studio-1.1.4.apk`
-- versionCode **105** / versionName **1.1.4**
-- SHA-256：`176c1421f90069dc09082a3578230d28f4cc44a0148aa745f3a72c9caf3eb278`（与 `deploy/www/version.json` 的 `studio.sha256` 相同）
+- 文件名：`muzi-studio-1.1.6.apk`
+- versionCode **107** / versionName **1.1.6**
+- SHA-256：`3c7afacc2b1c447e16753be5598f98539a8f2a60458febabd8e69e7bce0b37f7`（与 `deploy/www/version.json` 的 `studio.sha256` 相同）
 - 签名：v1 + v2（Android 6 认 v1）
 - 构建产物：`android/app/build/outputs/apk/release/app-release.apk`
-- 同步暂存：`deploy/www/apk/muzi-studio-1.1.4.apk`（仓库忽略 `*.apk`，以构建机或 PR 附件为准）
+- 同步暂存：`deploy/www/apk/muzi-studio-1.1.6.apk`（仓库忽略 `*.apk`，以构建机或 PR 附件为准）
 
 签名密钥是本次新生成的，**不入库**（`android/signing/muzi-release.jks` 与仓库根 `signing.env` 已在 `.gitignore`）。以后自动更新必须用同一把钥匙。钥匙丢失就只能卸载重装。
 
@@ -27,11 +27,11 @@
 若电视上已有旧的 `studio.muzi.tv`（公网 1.1.2 / versionCode 103，或其它钥匙签的包），系统会拒绝覆盖安装。先卸载旧包，再装本 APK。卸载会清掉应用内的 LibreTV 连接配置。
 
 ```text
-设置 → 应用 → muzi 主卧 / studio.muzi.tv → 卸载
-再安装 muzi-studio-1.1.4.apk
+设置 → 应用 → muzi Launcher / studio.muzi.tv → 卸载
+再安装 muzi-studio-1.1.6.apk
 ```
 
-装好后若要当桌面：按主页键，选「muzi 主卧」并设为始终。Android 6 小米不能禁用系统桌面，沿用现有开机拉起，不要停用 `com.mitv.tvhome`。
+装好后若要当桌面：按主页键，选「muzi Launcher」并设为始终。Android 6 小米不能禁用系统桌面，沿用现有开机拉起，不要停用 `com.mitv.tvhome`。
 
 ## 开机后核对四格
 
@@ -55,11 +55,11 @@
 | 清单 | https://zhishixingqiu.top/tv/version.json |
 | 使用字段 | `studio.package` / `studio.versionCode` / `studio.versionName` / `studio.url` / `studio.sha256` |
 | 包名 | `studio.muzi.tv`（与清单 `studio` 键相同，没有另开 applicationId） |
-| APK | https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.4.apk |
+| APK | https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.6.apk |
 | 服务器目录 | `/var/www/muzi-tv/`（nginx `location /tv/`，见 `deploy/server/muzi-tv.locations`） |
-| Mac 对照 | `/Users/xiaolongmu/Projects/muzi-tv/public-tv/www/version.json` 与 `public-tv/www/apk/` |
+| Mac 对照 | `~/Projects/muzi-tv/public-tv/www/version.json` 与 `public-tv/www/apk/` |
 
-启动时 `Updater.check` 拉清单（每个进程一次）。`studio.versionCode` 大于已安装 versionCode 时弹出「木子电视 有新版本」，按「更新」下载并用 SHA-256 校验后调系统安装器。Android 6 用 `PackageInfo.versionCode` 和 `file://`，不调用 API 28 的 `getLongVersionCode`。已是最新则不弹窗。检查失败只写 logcat 标签 `MuziUpdater`，不打扰家人。
+启动时 `Updater.check` 拉清单（每个进程一次）。`studio.versionCode` 大于已安装 versionCode 时弹出「muzi Launcher 有新版本」，按「更新」下载并用 SHA-256 校验后调系统安装器。Android 6 用 `PackageInfo.versionCode` 和 `file://`，不调用 API 28 的 `getLongVersionCode`。已是最新则不弹窗。检查失败只写 logcat 标签 `MuziUpdater`，不打扰家人。
 
 默认地址写在 `Updater.VERSION_URL`，构建再写入 `BuildConfig.UPDATE_URL`（默认同一个公网地址）。要换源而不改代码：在应用私有目录 `files/config.json` 增加 `"updateUrl":"https://…/version.json"`（须 http 或 https）。构建期覆盖：`-PmuziUpdateUrl=…` 或 `-PmuziBaseUrl=https://主机/tv`。
 
@@ -67,23 +67,23 @@
 
 ```bash
 curl -fsS https://zhishixingqiu.top/tv/version.json
-curl -fsSI https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.4.apk
+curl -fsSI https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.6.apk
 ```
 
 ### 怎么确认会弹出更新框
 
-弹窗条件：清单里的 `studio.versionCode` **大于** 电视上已装的 versionCode。刚装上 105，且清单也是 105 时，启动**不会**弹窗，这是正常的。
+弹窗条件：清单里的 `studio.versionCode` **大于** 电视上已装的 versionCode。刚装上 107，且清单也是 107 时，启动**不会**弹窗，这是正常的。
 
-1. 电视上还留着旧包（公网 1.1.2，versionCode 103），且清单已是 105：冷启动数秒内应出现「木子电视 有新版本」，正文版本 `1.1.4`。进程还在时返回主页不会再请求；要再看就划掉应用再开。
-2. 旧包若是另一把签名，点「更新」能下载，系统安装器会因签名不一致拒绝覆盖。这时先卸载，再装 1.1.4。弹窗本身已经说明检查成功。
-3. 装上 105 且清单也是 105：再冷启动，不应再弹「木子电视 有新版本」。
-4. 要在**同一把新钥匙**上走完「下载并安装」：先装一个 versionCode 更小、用 `muzi-release.jks` 签的包，清单保持 105，冷启动后点「更新」。不要把清单 versionCode 长期写成大于 APK 真实 versionCode，否则每次启动都会再提示。
+1. 电视上还留着旧包（公网 1.1.2，versionCode 103），且清单已是 107：冷启动数秒内应出现「muzi Launcher 有新版本」，正文版本 `1.1.6`。进程还在时返回主页不会再请求；要再看就划掉应用再开。
+2. 旧包若是另一把签名，点「更新」能下载，系统安装器会因签名不一致拒绝覆盖。这时先卸载，再装 1.1.6。弹窗本身已经说明检查成功。
+3. 装上 107 且清单也是 107：再冷启动，不应再弹「muzi Launcher 有新版本」。
+4. 要在**同一把新钥匙**上走完「下载并安装」：先装一个 versionCode 更小、用 `muzi-release.jks` 签的包，清单保持 107，冷启动后点「更新」。不要把清单 versionCode 长期写成大于 APK 真实 versionCode，否则每次启动都会再提示。
 
 本云端环境没有 SSH / 部署密钥，**不能**把 APK 写到 zhishixingqiu.top。`deploy/sync-tv.sh` 会在本地改好 `deploy/www/version.json` 的 `studio` 段（不动 `fongmi`），并把 APK 拷到 `deploy/www/apk/`。请把这两个文件交到正在发布的机器：
 
-- 本仓库：`deploy/www/version.json`、`deploy/www/apk/muzi-studio-1.1.4.apk`
-- Mac：`/Users/xiaolongmu/Projects/muzi-tv/public-tv/www/` 下同名路径
-- 服务器：`/var/www/muzi-tv/version.json` 与 `/var/www/muzi-tv/apk/muzi-studio-1.1.4.apk`
+- 本仓库：`deploy/www/version.json`、`deploy/www/apk/muzi-studio-1.1.6.apk`
+- Mac：`~/Projects/muzi-tv/public-tv/www/` 下同名路径
+- 服务器：`/var/www/muzi-tv/version.json` 与 `/var/www/muzi-tv/apk/muzi-studio-1.1.6.apk`
 
 已有 SSH 时：
 
@@ -91,4 +91,4 @@ curl -fsSI https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.4.apk
 SSH_TARGET=user@zhishixingqiu-host deploy/sync-tv.sh android/app/build/outputs/apk/release/app-release.apk
 ```
 
-上传后用上面的 curl 确认 `studio.versionCode` 为 105、`url` 指向 `muzi-studio-1.1.4.apk`、`sha256` 与 APK 一致，再按上一节在电视上看弹窗。
+上传后用上面的 curl 确认 `studio.versionCode` 为 107、`url` 指向 `muzi-studio-1.1.6.apk`、`sha256` 与 APK 一致，再按上一节在电视上看弹窗。

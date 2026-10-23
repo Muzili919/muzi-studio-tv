@@ -36,7 +36,7 @@ public final class Updater {
         new Thread(() -> {
             try {
                 JSONObject v = new JSONObject(new String(get(manifest), "UTF-8"));
-                offer(a, v.optJSONObject("studio"), a.getPackageName(), "木子电视");
+                offer(a, v.optJSONObject("studio"), a.getPackageName(), "muzi Launcher");
                 offer(a, v.optJSONObject("fongmi"), "com.fongmi.android.tv", "FongMi 影视");
             } catch (Throwable t) {
                 Log.w(TAG, "check failed " + manifest, t);

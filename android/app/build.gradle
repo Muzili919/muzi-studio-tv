@@ -22,8 +22,8 @@ android {
   applicationId 'studio.muzi.tv'
   minSdk 23
   targetSdk 34
-  versionCode 105
-  versionName '1.1.4'
+  versionCode 107
+  versionName '1.1.6'
   buildConfigField 'String', 'UPDATE_URL', '"' + muziUpdate.replace('\\', '\\\\').replace('"', '\\"') + '"'
  }
  signingConfigs {

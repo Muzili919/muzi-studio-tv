@@ -9,8 +9,8 @@
 #   https://zhishixingqiu.top/tv/version.json
 #   https://zhishixingqiu.top/tv/apk/muzi-studio-<versionName>.apk
 # Mac working copy used by the existing host (if that is where you publish from):
-#   /Users/xiaolongmu/Projects/muzi-tv/public-tv/www/version.json
-#   /Users/xiaolongmu/Projects/muzi-tv/public-tv/www/apk/
+#   ~/Projects/muzi-tv/public-tv/www/version.json
+#   ~/Projects/muzi-tv/public-tv/www/apk/
 #
 # Usage:
 #   deploy/sync-tv.sh android/app/build/outputs/apk/release/app-release.apk
