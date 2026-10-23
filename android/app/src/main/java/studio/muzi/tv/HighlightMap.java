@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /* loaded from: classes3.dex */
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public final class HighlightMap {
     public final List<Entry> entries;
     public final List<String> warnings;

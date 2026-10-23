@@ -89,6 +89,7 @@ import studio.muzi.tv.HighlightStore;
 import studio.muzi.tv.MainActivity;
 
 /* loaded from: classes3.dex */
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public class MainActivity extends Activity {
     static final String TAG = "MuziTV";
     LinearLayout biliBar;
@@ -156,7 +157,7 @@ public class MainActivity extends Activity {
     @Override // android.app.Activity
     public void onCreate(Bundle b) {
         super.onCreate(b);
-        Updater.check(this);
+        Updater.auto(this);
         getWindow().setFlags(1024, 1024);
         getWindow().getDecorView().setSystemUiVisibility(5894);
         readConfig();
@@ -308,7 +309,7 @@ public class MainActivity extends Activity {
         this.loadGeneration++;
         this.screen = "page";
         LinearLayout base = new LinearLayout(this);
-        base.setOrientation(1);
+        base.setOrientation(android.widget.LinearLayout.VERTICAL);
         base.setPadding(dp(40.0f), dp(16.0f), dp(40.0f), dp(12.0f));
         base.setBackgroundColor(Color.rgb(10, 17, 28));
         try {
@@ -330,7 +331,7 @@ public class MainActivity extends Activity {
         scroll.setClipToPadding(false);
         scroll.setClipChildren(false);
         this.content = new LinearLayout(this);
-        this.content.setOrientation(1);
+        this.content.setOrientation(android.widget.LinearLayout.VERTICAL);
         this.content.setClipChildren(false);
         scroll.addView(this.content);
         base.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1.0f));
@@ -405,18 +406,18 @@ public class MainActivity extends Activity {
                 i = getPackageManager().resolveActivity(explicit, 0) != null ? explicit : getPackageManager().getLaunchIntentForPackage("com.fongmi.android.tv");
             }
             if (i == null) {
-                Toast.makeText(this, "尚未安装蜂蜜（FongMi）", 0).show();
+                Toast.makeText(this, "尚未安装蜂蜜", Toast.LENGTH_SHORT).show();
             } else {
-                i.addFlags(268435456);
+                i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "尚未安装蜂蜜（FongMi）", 0).show();
+            Toast.makeText(this, "尚未安装蜂蜜", Toast.LENGTH_SHORT).show();
         }
     }
 
     void toast(String s) {
-        Toast.makeText(this, s, 1).show();
+        Toast.makeText(this, s, Toast.LENGTH_LONG).show();
     }
 
     /** Family dock: 0 蜂蜜, 1 YouTube, 2 全部应用, 3 设置. Live / HDMI / Tencent / Bilibili are not slots. */
@@ -596,6 +597,16 @@ public class MainActivity extends Activity {
     void showApps() {
         page("全部应用");
         this.screen = "apps";
+        addButton(this.content, "当贝市场", () -> {
+            Intent market = getPackageManager().getLaunchIntentForPackage("com.dangbeimarket");
+            if (market != null) startActivity(market);
+            else openExternal("https://www.dangbei.com/");
+        });
+        addButton(this.content, "检查木子桌面更新", () -> Updater.check(this));
+        addButton(this.content, "开发者设置 / ADB", () -> {
+            try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)); }
+            catch (Exception e) { toast("此电视未开放开发者设置，请按品牌说明开启；当贝市场不能直接解锁 ADB。"); }
+        });
         addButton(this.content, "安装应用", new Runnable() {
             @Override
             public void run() {
@@ -697,7 +708,7 @@ public class MainActivity extends Activity {
     /* renamed from: configure, reason: merged with bridge method [inline-methods] */
     public void m1707lambda$showSettings$6$studiomuzitvMainActivity() {
         LinearLayout l = new LinearLayout(this);
-        l.setOrientation(1);
+        l.setOrientation(android.widget.LinearLayout.VERTICAL);
         final EditText host = new EditText(this);
         host.setSingleLine(true);
         host.setText(this.server);
@@ -824,7 +835,7 @@ public class MainActivity extends Activity {
     void showInputs() {
         page("外接设备");
         this.screen = "inputs";
-        TvInputManager m = (TvInputManager) getSystemService("tv_input");
+        TvInputManager m = (TvInputManager) getSystemService(android.content.Context.TV_INPUT_SERVICE);
         int count = 0;
         if (m != null) {
             for (final TvInputInfo x : m.getTvInputList()) {
@@ -902,7 +913,7 @@ public class MainActivity extends Activity {
 
     /* renamed from: lambda$renderChannels$17$studio-muzi-tv-MainActivity, reason: not valid java name */
     /* synthetic */ void m1693lambda$renderChannels$17$studiomuzitvMainActivity(EditText input) {
-        ((InputMethodManager) getSystemService("input_method")).hideSoftInputFromWindow(input.getWindowToken(), 0);
+        ((InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(input.getWindowToken(), 0);
         renderChannels(input.getText().toString());
     }
 
@@ -980,7 +991,7 @@ public class MainActivity extends Activity {
                 JSONObject item = list.optJSONObject(i);
                 final String title = item.optString("title");
                 LinearLayout card = new LinearLayout(this);
-                card.setOrientation(1);
+                card.setOrientation(android.widget.LinearLayout.VERTICAL);
                 card.setPadding(dp(5.0f), dp(5.0f), dp(5.0f), dp(5.0f));
                 card.setBackground(bg(-14931653));
                 card.setFocusable(true);
@@ -1379,7 +1390,7 @@ public class MainActivity extends Activity {
         }
         this.query = q2;
         if (this.searchBox != null) {
-            ((InputMethodManager) getSystemService("input_method")).hideSoftInputFromWindow(this.searchBox.getWindowToken(), 0);
+            ((InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(this.searchBox.getWindowToken(), 0);
         }
         page("LibreTV · " + this.query);
         this.screen = "results";
@@ -1512,7 +1523,7 @@ public class MainActivity extends Activity {
 
     void showControls() {
         if (this.controls != null) {
-            this.controls.setVisibility(0);
+            this.controls.setVisibility(android.view.View.VISIBLE);
             this.pauseButton.requestFocus();
         }
     }
@@ -1682,14 +1693,14 @@ public class MainActivity extends Activity {
         this.playStatus.setBackgroundColor(-1342177280);
         frame.addView(this.playStatus, new FrameLayout.LayoutParams(-1, -2, 48));
         this.controls = new LinearLayout(this);
-        this.controls.setOrientation(1);
+        this.controls.setOrientation(android.widget.LinearLayout.VERTICAL);
         this.controls.setPadding(dp(24.0f), dp(8.0f), dp(24.0f), dp(12.0f));
         this.controls.setBackgroundColor(-586147801);
         this.timeLabel = text("正在加载…", 18);
         this.controls.addView(this.timeLabel);
         this.highlightBlurb = text("", 16);
         this.highlightBlurb.setTextColor(-7261);
-        this.highlightBlurb.setVisibility(8);
+        this.highlightBlurb.setVisibility(android.view.View.GONE);
         this.controls.addView(this.highlightBlurb);
         this.seek = new MarkerSeekBar(this);
         this.seek.setMax(1000);
@@ -1716,9 +1727,9 @@ public class MainActivity extends Activity {
         this.markerScroller.setHorizontalScrollBarEnabled(false);
         this.markerScroller.setFocusable(false);
         this.markerScroller.setDescendantFocusability(262144);
-        this.markerScroller.setVisibility(8);
+        this.markerScroller.setVisibility(android.view.View.GONE);
         this.markerChips = new LinearLayout(this);
-        this.markerChips.setOrientation(0);
+        this.markerChips.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         this.markerScroller.addView(this.markerChips);
         this.controls.addView(this.markerScroller);
         LinearLayout row = new LinearLayout(this);
@@ -1758,7 +1769,7 @@ public class MainActivity extends Activity {
         }));
         this.controls.addView(row);
         this.highlightActions = new LinearLayout(this);
-        this.highlightActions.setVisibility(8);
+        this.highlightActions.setVisibility(android.view.View.GONE);
         this.highlightActions.addView(button("上一精彩", new Runnable() { // from class: studio.muzi.tv.MainActivity$$ExternalSyntheticLambda36
             @Override // java.lang.Runnable
             public final void run() {
@@ -1784,7 +1795,7 @@ public class MainActivity extends Activity {
         this.video = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).setLoadControl(new DefaultLoadControl.Builder().setBufferDurationsMs(60000, 180000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS, 10000).setTargetBufferBytes(67108864).setPrioritizeTimeOverSizeThresholds(false).build()).build();
         this.video.setVideoTextureView(surface);
         MultiSource.watch(this, title);
-        this.video.setAudioAttributes(new AudioAttributes.Builder().setUsage(1).setContentType(3).build(), true);
+        this.video.setAudioAttributes(new AudioAttributes.Builder().setUsage(androidx.media3.common.C.USAGE_MEDIA).setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
         this.video.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
@@ -1793,14 +1804,14 @@ public class MainActivity extends Activity {
                 }
                 Log.i(MainActivity.TAG, "PLAYER_STATE " + state + " duration=" + MainActivity.this.video.getDuration());
                 if (state == 3) {
-                    MainActivity.this.playStatus.setVisibility(8);
+                    MainActivity.this.playStatus.setVisibility(android.view.View.GONE);
                 }
                 if (state == 2) {
-                    MainActivity.this.playStatus.setVisibility(0);
+                    MainActivity.this.playStatus.setVisibility(android.view.View.VISIBLE);
                     MainActivity.this.playStatus.setText(title + " · 正在缓冲…");
                 }
                 if (state == 4) {
-                    MainActivity.this.playStatus.setVisibility(0);
+                    MainActivity.this.playStatus.setVisibility(android.view.View.VISIBLE);
                     MainActivity.this.playStatus.setText("播放结束 · 可选集或换源");
                     MainActivity.this.showControls();
                 }
@@ -1818,7 +1829,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPlayerError(PlaybackException error) {
-                MainActivity.this.playStatus.setVisibility(0);
+                MainActivity.this.playStatus.setVisibility(android.view.View.VISIBLE);
                 MainActivity.this.playStatus.setText("播放失败：" + error.getErrorCodeName() + " · 可换源重试");
                 MainActivity.this.showControls();
                 Log.e(MainActivity.TAG, "PLAY_ERROR " + error.getErrorCodeName(), error);
@@ -1941,7 +1952,7 @@ public class MainActivity extends Activity {
 
     /* renamed from: lambda$play$44$studio-muzi-tv-MainActivity, reason: not valid java name */
     /* synthetic */ void m1685lambda$play$44$studiomuzitvMainActivity(TextureView surface) {
-        this.controls.setVisibility(8);
+        this.controls.setVisibility(android.view.View.GONE);
         surface.requestFocus();
     }
 
@@ -2002,11 +2013,11 @@ public class MainActivity extends Activity {
                 jumpHighlight(isNextHighlightKey(k2));
                 return true;
             }
-            if (k2 == 82 || ((k2 == 19 && this.controls.getVisibility() != 0) || (k2 == 20 && this.controls.getVisibility() != 0))) {
+            if (k2 == 82 || ((k2 == 19 && this.controls.getVisibility() != android.view.View.VISIBLE) || (k2 == 20 && this.controls.getVisibility() != android.view.View.VISIBLE))) {
                 showControls();
                 return true;
             }
-            if (k2 == 85 || (this.controls.getVisibility() != 0 && (k2 == 23 || k2 == 66))) {
+            if (k2 == 85 || (this.controls.getVisibility() != android.view.View.VISIBLE && (k2 == 23 || k2 == 66))) {
                 if (this.video.isPlaying()) {
                     this.video.pause();
                 } else {
@@ -2015,7 +2026,7 @@ public class MainActivity extends Activity {
                 showControls();
                 return true;
             }
-            if (this.controls.getVisibility() != 0 && (k2 == 21 || k2 == 22)) {
+            if (this.controls.getVisibility() != android.view.View.VISIBLE && (k2 == 21 || k2 == 22)) {
                 if (this.video.isCurrentMediaItemSeekable() && this.video.getDuration() > 0) {
                     this.video.seekTo(Math.max(0L, Math.min(this.video.getDuration() - 1000, this.video.getCurrentPosition() + (k2 == 22 ? 10000 : -10000))));
                 }
@@ -2242,8 +2253,8 @@ public class MainActivity extends Activity {
         }
         this.pinnedHighlight = -1;
         boolean on = !this.activeHighlights.isEmpty();
-        this.markerScroller.setVisibility(on ? 0 : 8);
-        this.highlightActions.setVisibility(on ? 0 : 8);
+        this.markerScroller.setVisibility(on ? android.view.View.VISIBLE : android.view.View.GONE);
+        this.highlightActions.setVisibility(on ? android.view.View.VISIBLE : android.view.View.GONE);
         this.markerChips.removeAllViews();
         if (on) {
             populateMarkerChips(this.markerChips, this.activeHighlights);
@@ -2251,7 +2262,7 @@ public class MainActivity extends Activity {
             refreshHighlightDots(currentPos(), currentDur());
         } else {
             if (this.highlightBlurb != null) {
-                this.highlightBlurb.setVisibility(8);
+                this.highlightBlurb.setVisibility(android.view.View.GONE);
             }
             this.seek.setMarkers(new int[0], 0L, -1);
         }
@@ -2380,7 +2391,7 @@ public class MainActivity extends Activity {
         }
         this.video.seekTo(ms);
         showBlurb(blurb, true);
-        if (this.controls != null && this.controls.getVisibility() != 0) {
+        if (this.controls != null && this.controls.getVisibility() != android.view.View.VISIBLE) {
             showControls();
         }
         refreshHighlightDots(ms, len);
@@ -2439,7 +2450,7 @@ public class MainActivity extends Activity {
         if (this.highlightBlurb == null || this.pinnedHighlight >= 0) {
             return;
         }
-        this.highlightBlurb.setVisibility(8);
+        this.highlightBlurb.setVisibility(android.view.View.GONE);
     }
 
     void showBlurb(String text, boolean autoHide) {
@@ -2447,7 +2458,7 @@ public class MainActivity extends Activity {
             return;
         }
         this.highlightBlurb.setText(text);
-        this.highlightBlurb.setVisibility(0);
+        this.highlightBlurb.setVisibility(android.view.View.VISIBLE);
         if (this.hideBlurb != null) {
             this.ui.removeCallbacks(this.hideBlurb);
         }
@@ -2483,7 +2494,7 @@ public class MainActivity extends Activity {
     public void m1709lambda$showSettings$8$studiomuzitvMainActivity() {
         ScrollView scrollView = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
-        box.setOrientation(1);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
         box.setPadding(dp(8.0f), dp(8.0f), dp(8.0f), dp(8.0f));
         TextView help = new TextView(this);
         help.setTextColor(0xFF000000);
@@ -2492,7 +2503,7 @@ public class MainActivity extends Activity {
         box.addView(help, new LinearLayout.LayoutParams(-1, -2));
         final EditText url = new EditText(this);
         url.setSingleLine(true);
-        url.setHint("http://192.168.1.8:8765/highlights.json");
+        url.setHint("http://<局域网IP>:8765/highlights.json");
         url.setText(HighlightStore.readUrl(this));
         box.addView(url, new LinearLayout.LayoutParams(-1, -2));
         scrollView.addView(box);
@@ -2647,7 +2658,7 @@ public class MainActivity extends Activity {
         banner.setBackgroundColor(-1342177280);
         frame.addView(banner, new FrameLayout.LayoutParams(-1, -2, 48));
         this.controls = new LinearLayout(this);
-        this.controls.setOrientation(1);
+        this.controls.setOrientation(android.widget.LinearLayout.VERTICAL);
         this.controls.setPadding(dp(24.0f), dp(8.0f), dp(24.0f), dp(12.0f));
         this.controls.setBackgroundColor(-586147801);
         this.timeLabel = text("", 18);
@@ -2680,7 +2691,7 @@ public class MainActivity extends Activity {
         this.markerScroller.setFocusable(false);
         this.markerScroller.setHorizontalScrollBarEnabled(false);
         this.markerChips = new LinearLayout(this);
-        this.markerChips.setOrientation(0);
+        this.markerChips.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         this.markerScroller.addView(this.markerChips);
         this.controls.addView(this.markerScroller);
         populateMarkerChips(this.markerChips, this.activeHighlights);
@@ -2757,8 +2768,8 @@ public class MainActivity extends Activity {
             this.hit = new RectF[4];
             this.sx = 1.0f;
             this.sy = 1.0f;
-            this.regular = Typeface.create("sans-serif", 0);
-            this.medium = Typeface.create("sans-serif-medium", 0);
+            this.regular = Typeface.create("sans-serif", android.graphics.Typeface.NORMAL);
+            this.medium = Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL);
             setFocusable(true);
             setFocusableInTouchMode(true);
             try {

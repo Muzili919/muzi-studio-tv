@@ -37,7 +37,7 @@ final class BiliScreens {
         a.page("哔哩哔哩");
         a.screen = "bili";
         LinearLayout shelf = new LinearLayout(a);
-        shelf.setOrientation(1);
+        shelf.setOrientation(android.widget.LinearLayout.VERTICAL);
         a.content.addView(shelf);
         int mark = a.content.getChildCount();
         int apps = addInstalled(a);
@@ -84,10 +84,10 @@ final class BiliScreens {
         mainActivity.stopVideo();
         mainActivity.screen = "biliweb";
         LinearLayout root = new LinearLayout(mainActivity);
-        root.setOrientation(1);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFF000000);
         LinearLayout bar = new LinearLayout(mainActivity);
-        bar.setOrientation(0);
+        bar.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         bar.setPadding(mainActivity.dp(6.0f), mainActivity.dp(4.0f), mainActivity.dp(6.0f), mainActivity.dp(4.0f));
         bar.setBackgroundColor(-15722457);
         bar.addView(mainActivity.button("返回", new Runnable() { // from class: studio.muzi.tv.BiliScreens$$ExternalSyntheticLambda5
@@ -128,7 +128,7 @@ final class BiliScreens {
         root.addView(scroller);
         root.addView(status);
         WebView web = new WebView(mainActivity);
-        web.setLayerType(1, null);
+        web.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null);
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
         WebSettings settings = web.getSettings();

@@ -12,6 +12,6 @@ public class BootReceiver extends BroadcastReceiver {
         if (!"android.intent.action.BOOT_COMPLETED".equals(i.getAction()) || new File(c.getFilesDir(), "disable-home-redirect").exists()) {
             return;
         }
-        c.startActivity(new Intent(c, (Class<?>) MainActivity.class).addFlags(335544320));
+        c.startActivity(new Intent(c, (Class<?>) MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP));
     }
 }

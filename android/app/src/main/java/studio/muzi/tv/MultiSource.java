@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /** 同名多源聚合：首片测速选最快；播放中低于 2Mbps 或卡顿则自动切下一源并续播。 */
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 final class MultiSource {
     static final double MIN_MBPS = 2.0;
     static final String RANK_URL = "https://zhishixingqiu.top/tv/rank.json";

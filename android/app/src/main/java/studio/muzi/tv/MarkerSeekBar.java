@@ -81,6 +81,6 @@ public class MarkerSeekBar extends SeekBar {
     }
 
     private boolean isRtl() {
-        return getLayoutDirection() == 1;
+        return getLayoutDirection() == android.view.View.LAYOUT_DIRECTION_RTL;
     }
 }

@@ -38,18 +38,19 @@ public class HomeRedirectService extends AccessibilityService {
 
         /* renamed from: lambda$onReceive$0$studio-muzi-tv-HomeRedirectService$1, reason: not valid java name */
         /* synthetic */ void m1651lambda$onReceive$0$studiomuzitvHomeRedirectService$1() {
-            HomeRedirectService.this.startActivity(new Intent(HomeRedirectService.this, (Class<?>) MainActivity.class).addFlags(335544320));
+            HomeRedirectService.this.startActivity(new Intent(HomeRedirectService.this, (Class<?>) MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP));
         }
     }
 
     @Override // android.accessibilityservice.AccessibilityService
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag") // Pre-33 overload; API 33+ branch supplies the flag.
     protected void onServiceConnected() {
         super.onServiceConnected();
         this.homeKey = new AnonymousClass1();
-        if (Build.VERSION.SDK_INT < 33) {
-            registerReceiver(this.homeKey, new IntentFilter("android.intent.action.CLOSE_SYSTEM_DIALOGS"));
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(this.homeKey, new IntentFilter("android.intent.action.CLOSE_SYSTEM_DIALOGS"), Context.RECEIVER_EXPORTED);
         } else {
-            registerReceiver(this.homeKey, new IntentFilter("android.intent.action.CLOSE_SYSTEM_DIALOGS"), 2);
+            registerReceiver(this.homeKey, new IntentFilter("android.intent.action.CLOSE_SYSTEM_DIALOGS"));
         }
     }
 
@@ -63,7 +64,7 @@ public class HomeRedirectService extends AccessibilityService {
 
     @Override // android.accessibilityservice.AccessibilityService
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event.getEventType() != 32) {
+        if (event.getEventType() != android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             return;
         }
         String pkg = String.valueOf(event.getPackageName());
@@ -76,7 +77,7 @@ public class HomeRedirectService extends AccessibilityService {
                     return;
                 }
                 this.last = now;
-                startActivity(new Intent(this, (Class<?>) MainActivity.class).addFlags(335544320));
+                startActivity(new Intent(this, (Class<?>) MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP));
             }
         }
     }

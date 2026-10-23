@@ -124,7 +124,7 @@ final class DiscoverScreens {
             }
         }
         a.posters = new LinearLayout(a);
-        a.posters.setOrientation(1);
+        a.posters.setOrientation(android.widget.LinearLayout.VERTICAL);
         a.posters.setClipChildren(false);
         a.content.addView(a.posters);
         a.shelfNav = nav;
@@ -558,9 +558,9 @@ final class DiscoverScreens {
     static void fillLive(final MainActivity a, final View firstRegion) {
         final long gen = a.loadGeneration;
         LinearLayout block = new LinearLayout(a);
-        block.setOrientation(1);
+        block.setOrientation(android.widget.LinearLayout.VERTICAL);
         final LinearLayout list = new LinearLayout(a);
-        list.setOrientation(1);
+        list.setOrientation(android.widget.LinearLayout.VERTICAL);
         list.setClipChildren(false);
         block.addView(list);
         final TextView note = a.text("正在读取频道…", 15);
@@ -612,7 +612,7 @@ final class DiscoverScreens {
         final TextView note = a.text("正在查找… 这不是 B站 排行。红牛 / 暴风 / 量子 / 360 / 无尽 / 非凡没有哔哩分类。", 15);
         host.addView(note);
         LinearLayout rows = new LinearLayout(a);
-        rows.setOrientation(1);
+        rows.setOrientation(android.widget.LinearLayout.VERTICAL);
         host.addView(rows);
         final List<CmsCatalog.Item> items = new ArrayList<>();
         final int[] left = {SOURCES.length};
@@ -1056,7 +1056,7 @@ final class DiscoverScreens {
         linearLayout.addView(sectionTitle(a, row.title));
         HorizontalScrollView scroller = rowScroller(a);
         LinearLayout strip = new LinearLayout(a);
-        strip.setOrientation(0);
+        strip.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         strip.setClipChildren(false);
         for (int i = 0; i < row.items.size(); i++) {
             strip.addView(card(a, row.items.get(i), gen, shelf));
@@ -1067,7 +1067,7 @@ final class DiscoverScreens {
 
     private static View sectionTitle(MainActivity a, String title) {
         LinearLayout row = new LinearLayout(a);
-        row.setOrientation(0);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
         row.setGravity(16);
         row.setPadding(0, a.dp(14.0f), 0, a.dp(4.0f));
         View mark = new View(a);
@@ -1080,7 +1080,7 @@ final class DiscoverScreens {
         row.addView(mark, markLp);
         TextView label = a.text(title, 20);
         label.setPadding(0, 0, 0, 0);
-        label.setTypeface(Typeface.create("sans-serif-medium", 0));
+        label.setTypeface(Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         row.addView(label);
         return row;
     }
@@ -1098,7 +1098,7 @@ final class DiscoverScreens {
 
     private static View card(final MainActivity a, final CmsCatalog.Item item, long gen, int shelf) {
         LinearLayout linearLayout = new LinearLayout(a);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
         linearLayout.setClipChildren(false);
         linearLayout.setFocusable(true);
         linearLayout.setFocusableInTouchMode(true);
@@ -1121,7 +1121,7 @@ final class DiscoverScreens {
         if (item.scored()) {
             TextView badge = a.text(String.format(Locale.US, "%.1f", Double.valueOf(item.score)), 13);
             badge.setTextColor(-15068668);
-            badge.setTypeface(Typeface.create("sans-serif-medium", 0));
+            badge.setTypeface(Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
             GradientDrawable pill = new GradientDrawable();
             pill.setColor(-670639);
             pill.setCornerRadius(a.dp(8.0f));
@@ -1176,7 +1176,7 @@ final class DiscoverScreens {
 
     private static View channelCard(final MainActivity a, final LiveGuide.Channel channel) {
         LinearLayout card = new LinearLayout(a);
-        card.setOrientation(1);
+        card.setOrientation(android.widget.LinearLayout.VERTICAL);
         card.setGravity(16);
         card.setPadding(a.dp(16.0f), a.dp(14.0f), a.dp(16.0f), a.dp(14.0f));
         card.setFocusable(true);
@@ -1308,7 +1308,7 @@ final class DiscoverScreens {
             linearLayout.addView(sectionTitle(a, entry.getKey()));
             HorizontalScrollView scroller = rowScroller(a);
             LinearLayout strip = new LinearLayout(a);
-            strip.setOrientation(0);
+            strip.setOrientation(android.widget.LinearLayout.HORIZONTAL);
             strip.setClipChildren(false);
             for (int i2 = 0; i2 < entry.getValue().size(); i2++) {
                 View card = channelCard(a, entry.getValue().get(i2));
@@ -1616,7 +1616,7 @@ final class DiscoverScreens {
 
     private static LinearLayout column(MainActivity a) {
         LinearLayout box = new LinearLayout(a);
-        box.setOrientation(1);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
         return box;
     }
 

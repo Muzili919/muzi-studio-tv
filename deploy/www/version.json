@@ -1,10 +1,11 @@
 {
   "studio": {
     "package": "studio.muzi.tv",
-    "versionCode": 107,
-    "versionName": "1.1.6",
-    "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.6.apk",
-    "sha256": "3c7afacc2b1c447e16753be5598f98539a8f2a60458febabd8e69e7bce0b37f7"
+    "versionCode": 108,
+    "versionName": "1.1.7",
+    "minSdk": 23,
+    "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.7.apk",
+    "sha256": "dacd4ba881f4e287c4814150311b1645f7e6ed71852554b51606d7a1ec335cae"
   },
   "fongmi": {
     "package": "com.fongmi.android.tv",
