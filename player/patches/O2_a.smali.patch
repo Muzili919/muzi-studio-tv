@@ -1,0 +1,15 @@
+--- a/smali/O2/a.smali
++++ b/smali/O2/a.smali
+@@ -305,6 +305,12 @@
+ 
+ .method public static b(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     .locals 3
++
++    invoke-static {p0}, Lstudio/muzi/fongmi/NetworkBridge;->fetchOwnHost(Ljava/lang/String;)Ljava/lang/String;
++    move-result-object v0
++    if-eqz v0, :muzi_original_fetch
++    return-object v0
++    :muzi_original_fetch
+ 
+     .line 1
+     invoke-static {}, Lw3/d;->c()Lokhttp3/OkHttpClient;

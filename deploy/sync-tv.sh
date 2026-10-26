@@ -29,13 +29,17 @@ if [ ! -f "$APK" ]; then
   exit 1
 fi
 python3 - "$APK" <<'PY'
-import hashlib, json, re, shutil, sys
+import hashlib, json, re, shutil, sys, os, subprocess
 from pathlib import Path
 apk = Path(sys.argv[1]).resolve()
 root = Path(".").resolve()
-gradle = (root / "android/app/build.gradle").read_text()
-code = int(re.search(r"versionCode\s+(\d+)", gradle).group(1))
-name = re.search(r"versionName\s+['\"]([^'\"]+)['\"]", gradle).group(1)
+sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or Path.home()/"Library/Android/sdk")
+aapts = sorted((sdk/"build-tools").glob("*/aapt"))
+if not aapts: raise SystemExit("Set ANDROID_HOME to an installed Android SDK")
+meta = subprocess.check_output([str(aapts[-1]),"dump","badging",str(apk)],text=True)
+if "package: name='studio.muzi.tv'" not in meta: raise SystemExit("Not a Muzi desktop APK")
+code = int(re.search(r"versionCode='(\d+)'",meta).group(1))
+name = re.search(r"versionName='([^']+)'",meta).group(1)
 digest = hashlib.sha256(apk.read_bytes()).hexdigest()
 dest_name = "muzi-studio-%s.apk" % name
 dest_dir = root / "deploy/www/apk"
@@ -62,7 +66,7 @@ print("manifest", manifest_path)
 PY
 echo "Staged under deploy/www/. APK is gitignored; commit deploy/www/version.json."
 if [ -n "${SSH_TARGET:-}" ]; then
-  NAME=$(python3 -c 'import re;print(re.search(r"versionName\s+[\x27\"]([^\x27\"]+)[\x27\"]",open("android/app/build.gradle").read()).group(1))')
+  NAME=$(python3 -c 'import json;print(json.load(open("deploy/www/version.json"))["studio"]["versionName"])')
   ssh "$SSH_TARGET" "mkdir -p /var/www/muzi-tv/apk"
   scp "deploy/www/apk/muzi-studio-${NAME}.apk" "$SSH_TARGET:/var/www/muzi-tv/apk/muzi-studio-${NAME}.apk"
   scp deploy/www/version.json "$SSH_TARGET:/var/www/muzi-tv/version.json"

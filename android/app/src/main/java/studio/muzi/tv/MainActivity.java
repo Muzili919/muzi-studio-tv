@@ -100,7 +100,7 @@ public class MainActivity extends Activity {
     Runnable hideBlurb;
     LinearLayout highlightActions;
     TextView highlightBlurb;
-    Home home;
+    DesktopView home;
     LinearLayout markerChips;
     HorizontalScrollView markerScroller;
     Button pauseButton;
@@ -157,7 +157,7 @@ public class MainActivity extends Activity {
     @Override // android.app.Activity
     public void onCreate(Bundle b) {
         super.onCreate(b);
-        Updater.auto(this);
+        // Update checks run while the native desktop is foreground.
         getWindow().setFlags(1024, 1024);
         getWindow().getDecorView().setSystemUiVisibility(5894);
         readConfig();
@@ -346,9 +346,10 @@ public class MainActivity extends Activity {
         this.loadGeneration++;
         this.screen = "home";
         if (this.selected < 0 || this.selected > 3) this.selected = 0;
-        this.home = new Home();
+        this.home = new DesktopView(this);
         setContentView(this.home);
         this.home.requestFocus();
+        this.home.resume();
     }
 
     @Override // android.app.Activity
@@ -361,8 +362,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (Updater.onInstallResult(this, request, result, data)) return;
         if (request != REQ_PICK_APK || result != RESULT_OK || data == null || data.getData() == null) return;
         installPickedApk(data.getData());
+    }
+
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(request,permissions,results);
+        if(request==Updater.REQUEST_STORAGE&&results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)Updater.check(this);
     }
 
     void openLibreWebsite() {
@@ -406,13 +413,13 @@ public class MainActivity extends Activity {
                 i = getPackageManager().resolveActivity(explicit, 0) != null ? explicit : getPackageManager().getLaunchIntentForPackage("com.fongmi.android.tv");
             }
             if (i == null) {
-                Toast.makeText(this, "尚未安装蜂蜜", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "尚未安装木子映界", Toast.LENGTH_SHORT).show();
             } else {
                 i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "尚未安装蜂蜜", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "尚未安装木子映界", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -2084,6 +2091,8 @@ public class MainActivity extends Activity {
     @Override // android.app.Activity
     protected void onPause() {
         super.onPause();
+        if (home != null) home.pause();
+        Updater.background(this);
         if (this.video != null) {
             this.video.pause();
         }
@@ -2095,6 +2104,7 @@ public class MainActivity extends Activity {
     @Override // android.app.Activity
     protected void onResume() {
         super.onResume();
+        if (home != null && "home".equals(screen)) home.resume();
         if (this.biliWeb != null) {
             this.biliWeb.onResume();
         }
@@ -2503,7 +2513,7 @@ public class MainActivity extends Activity {
         box.addView(help, new LinearLayout.LayoutParams(-1, -2));
         final EditText url = new EditText(this);
         url.setSingleLine(true);
-        url.setHint("http://<局域网IP>:8765/highlights.json");
+        url.setHint("http://192.168.1.8:8765/highlights.json");
         url.setText(HighlightStore.readUrl(this));
         box.addView(url, new LinearLayout.LayoutParams(-1, -2));
         scrollView.addView(box);
@@ -2764,7 +2774,7 @@ public class MainActivity extends Activity {
             super(MainActivity.this);
             this.p = new Paint(3);
             // Fixed family dock (Gavin 2026-10-22). Do not add Tencent, Bilibili, LibreTV, live, or HDMI tiles.
-            this.labels = new String[]{"蜂蜜", "YouTube", "全部应用", "设置"};
+            this.labels = new String[]{"木子映界", "YouTube", "全部应用", "设置"};
             this.hit = new RectF[4];
             this.sx = 1.0f;
             this.sy = 1.0f;
@@ -2829,7 +2839,7 @@ public class MainActivity extends Activity {
             boolean z;
             String str;
             float f3;
-            Home home;
+            DesktopView home;
             Canvas canvas;
             float f4;
             float f5;

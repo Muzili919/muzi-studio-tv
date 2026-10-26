@@ -1,0 +1,11 @@
+--- a/smali/com/fongmi/android/tv/ui/activity/HomeActivity.smali
++++ b/smali/com/fongmi/android/tv/ui/activity/HomeActivity.smali
+@@ -2859,6 +2859,8 @@
+     .line 5
+     .line 6
+     .line 7
++    invoke-static {p0, p1}, Lstudio/muzi/fongmi/HomeSurface;->entry(Landroid/app/Activity;Landroid/content/Intent;)V
++
+     return-void
+ .end method
+ 

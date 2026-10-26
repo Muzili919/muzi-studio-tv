@@ -1,0 +1,20 @@
+--- a/smali/okhttp3/OkHttpClient.smali
++++ b/smali/okhttp3/OkHttpClient.smali
+@@ -393,6 +393,8 @@
+     .line 17
+     :cond_1
+     :goto_0
++    invoke-static {v3}, Lstudio/muzi/fongmi/ProxyFallback;->wrap(Ljava/net/ProxySelector;)Ljava/net/ProxySelector;
++    move-result-object v3
+     iput-object v3, v0, Lokhttp3/OkHttpClient;->proxySelector:Ljava/net/ProxySelector;
+ 
+     .line 18
+@@ -2070,6 +2072,8 @@
+ 
+     .line 2
+     .line 3
++    invoke-static {v0}, Lstudio/muzi/fongmi/ProxyFallback;->wrap(Ljava/net/ProxySelector;)Ljava/net/ProxySelector;
++    move-result-object v0
+     return-object v0
+ .end method
+ 

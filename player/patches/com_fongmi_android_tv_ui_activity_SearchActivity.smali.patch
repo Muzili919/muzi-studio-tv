@@ -1,0 +1,40 @@
+--- a/smali/com/fongmi/android/tv/ui/activity/SearchActivity.smali
++++ b/smali/com/fongmi/android/tv/ui/activity/SearchActivity.smali
+@@ -150,6 +150,8 @@
+ 
+     .line 58
+     .line 59
++    invoke-static {p0}, Lstudio/muzi/fongmi/VoiceSearch;->install(Landroid/app/Activity;)V
++
+     return-void
+ .end method
+ 
+@@ -719,6 +721,13 @@
+ .method public final dispatchKeyEvent(Landroid/view/KeyEvent;)Z
+     .locals 2
+ 
++    invoke-static {p0, p1}, Lstudio/muzi/fongmi/VoiceSearch;->key(Landroid/app/Activity;Landroid/view/KeyEvent;)Z
++    move-result v0
++    if-eqz v0, :muzi_native_search_key
++    const/4 v0, 0x1
++    return v0
++    :muzi_native_search_key
++
+     .line 1
+     invoke-static {p1}, Lo3/j;->x(Landroid/view/KeyEvent;)Z
+ 
+@@ -1059,3 +1068,14 @@
+     .line 129
+     throw v1
+ .end method
++
++.method protected onActivityResult(IILandroid/content/Intent;)V
++    .locals 1
++    invoke-static {p0, p1, p2, p3}, Lstudio/muzi/fongmi/VoiceSearch;->result(Landroid/app/Activity;IILandroid/content/Intent;)Z
++    move-result v0
++    if-eqz v0, :muzi_native_search_result
++    return-void
++    :muzi_native_search_result
++    invoke-super {p0, p1, p2, p3}, Lg/j;->onActivityResult(IILandroid/content/Intent;)V
++    return-void
++.end method

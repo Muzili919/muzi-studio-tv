@@ -1,0 +1,1 @@
+package studio.muzi.tv; final class BuildConfig {static final String UPDATE_URL="https://zhishixingqiu.top/tv/version.json";}

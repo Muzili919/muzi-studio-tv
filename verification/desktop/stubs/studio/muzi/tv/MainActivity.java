@@ -1,0 +1,1 @@
+package studio.muzi.tv; public class MainActivity extends android.app.Activity {String screen="home"; String launched; String roomName(){return "测试";}void launch(String p){launched=p;}void toast(String s){}void openSystemSettings(){} }

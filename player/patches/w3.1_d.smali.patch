@@ -1,0 +1,11 @@
+--- a/smali/w3.1/d.smali
++++ b/smali/w3.1/d.smali
+@@ -58,6 +58,8 @@
+     move-result-object v0
+ 
+     .line 15
++    invoke-static {v0}, Lstudio/muzi/fongmi/ProxyFallback;->wrap(Ljava/net/ProxySelector;)Ljava/net/ProxySelector;
++    move-result-object v0
+     sput-object v0, Lw3/d;->i:Ljava/net/ProxySelector;
+ 
+     .line 16

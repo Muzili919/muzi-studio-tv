@@ -1,17 +1,18 @@
 {
   "studio": {
     "package": "studio.muzi.tv",
-    "versionCode": 108,
-    "versionName": "1.1.7",
+    "versionCode": 125,
+    "versionName": "1.2.4",
     "minSdk": 23,
-    "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.1.7.apk",
-    "sha256": "dacd4ba881f4e287c4814150311b1645f7e6ed71852554b51606d7a1ec335cae"
+    "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.4.apk",
+    "sha256": "3fb2e5a986667f31935c505bcc6827b869017c6e8499dfcb0e4e690c37b4f8a7"
   },
   "fongmi": {
     "package": "com.fongmi.android.tv",
-    "versionCode": 407,
-    "versionName": "4.0.7",
-    "url": "https://zhishixingqiu.top/tv/apk/FongMi-4.0.7.apk",
-    "sha256": "03d81371e3a2a39e2ecaba82c93b35ee60090522d61f4e55954b97fa16863b8c"
+    "versionCode": 422,
+    "versionName": "4.0.7-muzi.10",
+    "url": "https://zhishixingqiu.top/tv/apk/muzi-player-4.0.7-muzi.10.apk",
+    "sha256": "876ec9c085c3c5c19a271ade2afb6dd134880aecca5c43706b4f1629843d0ec0",
+    "minSdk": 23
   }
 }

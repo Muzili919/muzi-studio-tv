@@ -1,0 +1,9 @@
+plugins { id 'java' }
+repositories { mavenCentral(); google() }
+dependencies {
+ compileOnly 'org.robolectric:android-all:15-robolectric-12650502'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.14.1'
+}
+sourceSets {main.java.srcDirs=[];test.java.srcDirs=['testsrc']}
+compileJava {source fileTree('../../android/app/src/main/java'){include '**/DesktopView.java','**/LakeMotion.java','**/Updater.java','**/LegacyTls.java','**/ApkProvider.java'};source fileTree('stubs')}

@@ -1,8 +1,8 @@
 # muzi studio TV
 
-一个给 Android TV（Android 6.0+ / API 23）用的轻量电视桌面：推荐页 → 电影 / 电视剧 / 动漫 / 综艺 / 体育 / 直播 → 分类，播放可交给 FongMi；带远程自动更新、开机自启、HOME 键转跳。
+Android TV（Android 6.0+ / API 23）电视桌面：木子影界、直播电视、自选应用、自定义应用与设置入口。支持清晰星空壁纸、连续水波、流星、开机检查和下载更新、HOME键返回。普通设备安装更新仍可能需要系统确认。
 
-A lightweight Android TV home (Android 6.0+ / API 23): a recommendation page with Movies / TV / Anime / Variety / Sports / Live entries and sub-categories, FongMi as an optional player/source, plus self-hosted auto-update, start-on-boot and HOME-key redirect.
+A native Android TV home (API23+) with separate VOD/live entries, customizable app shortcuts, gentle lake motion and startup update checks. System installation approval may still be required.
 
 ## 目录 / Layout
 - `android/` — studio 源码 / app source (Java, Media3 ExoPlayer)
@@ -31,7 +31,11 @@ This repo ships **no content sources**; all endpoints are `example.com` placehol
 ## 致谢 / Credits
 - [cleanyourtv](https://github.com/Gathin23/cleanyourtv)（MIT）— 去广告与替换桌面的思路 / debloat & launcher ideas（本仓库暂未包含其代码）
 - [LibreTV](https://github.com/LibreSpark/LibreTV)（AGPL-3.0）— 推荐页界面参考；studio 只通过 URL 打开你自己部署的 LibreTV，本仓库**不包含** LibreTV 代码 / UI inspiration; linked by URL only, no LibreTV code included
-- [FongMi TV](https://github.com/FongMi/TV) — 播放器 / player（未修改、未重新打包 / unmodified, not redistributed）
+- [FongMi TV](https://github.com/FongMi/TV) — 播放器 / player（木子播放器基于4.0.7增补首页与路由；附加组件源码在player/，原客户端与依赖沿用上游许可）
+
+## 1.2.4 升级说明
+
+[新版安装和旧版本兼容说明](docs/releases/1.2.4.md)。桌面及播放器APK在GitHub Release，自有更新通道沿用原version.json。客户配置和观看记录不会放入仓库。
 
 ## License
 MIT

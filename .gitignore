@@ -21,3 +21,8 @@ downloads/
 tmp-*/
 __pycache__/
 .DS_Store
+
+# Local device review and customer backups
+review-build/
+*.bk.gz
+*.idsig

@@ -1,0 +1,15 @@
+--- a/smali/Y2/a.smali
++++ b/smali/Y2/a.smali
+@@ -827,6 +827,12 @@
+ 
+     .line 378
+     :cond_a
++    invoke-static {v3}, Lstudio/muzi/fongmi/NetworkBridge;->fetchOwnHost(Ljava/lang/String;)Ljava/lang/String;
++    move-result-object v7
++    if-eqz v7, :muzi_original_playlist
++    move-object v3, v7
++    goto :goto_8
++    :muzi_original_playlist
+     :try_start_0
+     invoke-static {v6}, Lokhttp3/Headers;->of(Ljava/util/Map;)Lokhttp3/Headers;
+ 

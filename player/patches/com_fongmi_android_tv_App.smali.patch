@@ -1,0 +1,11 @@
+--- a/smali/com/fongmi/android/tv/App.smali
++++ b/smali/com/fongmi/android/tv/App.smali
+@@ -578,6 +578,8 @@
+     .line 1
+     invoke-super {p0}, Landroid/app/Application;->onCreate()V
+ 
++    invoke-static {}, Lstudio/muzi/fongmi/NetworkBridge;->installProxyFallback()V
++
+     .line 2
+     .line 3
+     .line 4

@@ -1,0 +1,13 @@
+package studio.muzi.fongmi;
+import java.net.*;import java.io.*;import java.util.*;import java.util.concurrent.*;
+/** Preserve working proxies; fail open to direct only for unreachable LAN relays in this process. */
+public final class ProxyFallback extends ProxySelector {
+ final ProxySelector delegate;final ConcurrentHashMap<SocketAddress,long[]> health=new ConcurrentHashMap<SocketAddress,long[]>();
+ ProxyFallback(ProxySelector source){delegate=source;}
+ static final java.util.Map<ProxySelector,ProxySelector> wrappers=new java.util.WeakHashMap<ProxySelector,ProxySelector>();
+ public static synchronized ProxySelector wrap(ProxySelector source){if(source instanceof ProxyFallback)return source;ProxySelector cached=wrappers.get(source);if(cached==null){cached=new ProxyFallback(source);wrappers.put(source,cached);}return cached;}
+ static boolean local(InetSocketAddress address){InetAddress ip=address.getAddress();if(ip!=null)return ip.isSiteLocalAddress()||ip.isLoopbackAddress();String host=address.getHostString();if("localhost".equalsIgnoreCase(host))return true;String[] parts=host.split("\\.");if(parts.length!=4)return false;try{int[] octets=new int[4];for(int i=0;i<4;i++){octets[i]=Integer.parseInt(parts[i]);if(octets[i]<0||octets[i]>255)return false;}return octets[0]==10||octets[0]==127||(octets[0]==192&&octets[1]==168)||(octets[0]==172&&octets[1]>=16&&octets[1]<=31);}catch(NumberFormatException e){return false;}}
+ boolean reachable(InetSocketAddress address){long now=System.currentTimeMillis();long[] prior=health.get(address);if(prior!=null&&now-prior[0]<30000)return prior[1]==1;boolean ok=false;try(Socket socket=new Socket()){socket.connect(address.isUnresolved()?new InetSocketAddress(address.getHostString(),address.getPort()):address,250);ok=true;}catch(Exception ignored){}health.put(address,new long[]{now,ok?1:0});return ok;}
+ @Override public List<Proxy> select(URI uri){List<Proxy> source=delegate==null?Collections.singletonList(Proxy.NO_PROXY):delegate.select(uri);ArrayList<Proxy> result=new ArrayList<Proxy>();if(source!=null)for(Proxy proxy:source){SocketAddress address=proxy.address();if(proxy.type()!=Proxy.Type.DIRECT&&address instanceof InetSocketAddress&&local((InetSocketAddress)address)&&!reachable((InetSocketAddress)address))continue;result.add(proxy);}return result.isEmpty()?Collections.singletonList(Proxy.NO_PROXY):result;}
+ @Override public void connectFailed(URI uri,SocketAddress address,IOException error){if(address instanceof InetSocketAddress&&local((InetSocketAddress)address))health.put(address,new long[]{System.currentTimeMillis(),0});if(delegate!=null)delegate.connectFailed(uri,address,error);}
+}
