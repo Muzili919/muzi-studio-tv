@@ -33,9 +33,9 @@ This repo ships **no content sources**; all endpoints are `example.com` placehol
 - [LibreTV](https://github.com/LibreSpark/LibreTV)（AGPL-3.0）— 推荐页界面参考；studio 只通过 URL 打开你自己部署的 LibreTV，本仓库**不包含** LibreTV 代码 / UI inspiration; linked by URL only, no LibreTV code included
 - [FongMi TV](https://github.com/FongMi/TV) — 播放器 / player（木子播放器基于4.0.7增补首页与路由；附加组件源码在player/，原客户端与依赖沿用上游许可）
 
-## 1.2.5 升级说明
+## 1.2.6 升级说明
 
-[新版安装和旧版本兼容说明](docs/releases/1.2.5.md)。桌面及播放器APK在GitHub Release，自有更新通道沿用原version.json。客户配置和观看记录不会放入仓库。
+[新版安装和旧版本兼容说明](docs/releases/1.2.6.md)。桌面及播放器APK在GitHub Release，自有更新通道沿用原version.json。客户配置和观看记录不会放入仓库。
 
 ## License
 MIT

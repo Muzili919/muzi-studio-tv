@@ -9,6 +9,7 @@ import android.view.*;
 import android.widget.FrameLayout;
 import java.io.*;
 import java.nio.*;
+import org.json.*;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -22,7 +23,7 @@ final class DesktopBackdrop extends FrameLayout {
     private final MeteorField meteors=new MeteorField();
     private final Path skyline=new Path();
     private final float[] ridge={0,.45f,.04f,.456f,.065f,.436f,.09f,.459f,.13f,.429f,.16f,.455f,.205f,.435f,.253f,.431f,.28f,.46f,.325f,.471f,.375f,.427f,.404f,.444f,.431f,.404f,.48f,.362f,.506f,.388f,.542f,.416f,.567f,.411f,.608f,.448f,.636f,.452f,.673f,.474f,.704f,.493f,.754f,.47f,.78f,.49f,.82f,.49f,.86f,.508f,.90f,.499f,.94f,.512f,1,.48f};
-    private final float[] shore={.30f,.599f,.60f,.596f,.76f,.617f,1,.632f,1,.86f,.91f,.85f,.84f,.854f,.77f,.837f,.69f,.837f,.60f,.813f,.54f,.832f,.46f,.822f,.37f,.816f,.29f,.796f,.38f,.743f,.31f,.709f,.19f,.696f,.24f,.671f,.16f,.654f,.24f,.634f,.32f,.615f};
+
     private boolean active, motion=true, surfacePaused;
     private long elapsed,last;
     private final Runnable redraw=()->invalidate();
@@ -59,17 +60,21 @@ final class DesktopBackdrop extends FrameLayout {
         final FloatBuffer quad=ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
         WaterRenderer(){quad.put(new float[]{-1,-1,1,-1,-1,1,1,1}).position(0);}
         int compile(int type,String source){int shader=GLES20.glCreateShader(type);GLES20.glShaderSource(shader,source);GLES20.glCompileShader(shader);int[] ok=new int[1];GLES20.glGetShaderiv(shader,GLES20.GL_COMPILE_STATUS,ok,0);if(ok[0]==0)throw new IllegalStateException(GLES20.glGetShaderInfoLog(shader));return shader;}
-        String shaderSource()throws IOException{try(InputStream in=getContext().getAssets().open("water.frag");ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[4096];int n;while((n=in.read(buffer))>0)out.write(buffer,0,n);return out.toString("UTF-8");}}
+        String readAsset(String name)throws IOException{try(InputStream in=getContext().getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[4096];int n;while((n=in.read(buffer))>0)out.write(buffer,0,n);return out.toString("UTF-8");}}
+        Path maskPath(JSONArray points,float iw,float ih)throws JSONException{Path path=new Path();for(int i=0;i<points.length();i++){JSONArray point=points.getJSONArray(i);float x=(float)point.getDouble(0)/iw*960,y=(float)point.getDouble(1)/ih*540;if(i==0)path.moveTo(x,y);else path.lineTo(x,y);}path.close();return path;}
         void texture(int unit,Bitmap bitmap,String uniform){GLES20.glActiveTexture(GLES20.GL_TEXTURE0+unit);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textures[unit]);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_CLAMP_TO_EDGE);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE);GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bitmap,0);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,uniform),unit);}
         @Override public void onSurfaceCreated(GL10 gl,EGLConfig config){
             failed=false;reported=false;
             try{
                 if(wall==null)throw new IllegalStateException("No wallpaper bitmap");
                 int vertex=compile(GLES20.GL_VERTEX_SHADER,"attribute vec2 pos;varying vec2 uv;void main(){uv=vec2((pos.x+1.0)*0.5,(1.0-pos.y)*0.5);gl_Position=vec4(pos,0.,1.);}");
-                int fragment=compile(GLES20.GL_FRAGMENT_SHADER,shaderSource());program=GLES20.glCreateProgram();GLES20.glAttachShader(program,vertex);GLES20.glAttachShader(program,fragment);GLES20.glLinkProgram(program);int[] linked=new int[1];GLES20.glGetProgramiv(program,GLES20.GL_LINK_STATUS,linked,0);if(linked[0]==0)throw new IllegalStateException(GLES20.glGetProgramInfoLog(program));GLES20.glDeleteShader(vertex);GLES20.glDeleteShader(fragment);GLES20.glUseProgram(program);
+                int fragment=compile(GLES20.GL_FRAGMENT_SHADER,readAsset("water.frag"));program=GLES20.glCreateProgram();GLES20.glAttachShader(program,vertex);GLES20.glAttachShader(program,fragment);GLES20.glLinkProgram(program);int[] linked=new int[1];GLES20.glGetProgramiv(program,GLES20.GL_LINK_STATUS,linked,0);if(linked[0]==0)throw new IllegalStateException(GLES20.glGetProgramInfoLog(program));GLES20.glDeleteShader(vertex);GLES20.glDeleteShader(fragment);GLES20.glUseProgram(program);
                 int pos=GLES20.glGetAttribLocation(program,"pos");quad.position(0);GLES20.glEnableVertexAttribArray(pos);GLES20.glVertexAttribPointer(pos,2,GLES20.GL_FLOAT,false,0,quad);
                 GLES20.glGenTextures(2,textures,0);texture(0,wall,"wall");
-                Bitmap mask=Bitmap.createBitmap(960,540,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(mask);Path polygon=new Path();polygon.moveTo(shore[0]*960,shore[1]*540);for(int i=2;i<shore.length;i+=2)polygon.lineTo(shore[i]*960,shore[i+1]*540);polygon.close();canvas.clipPath(polygon);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(Color.WHITE);paint.setMaskFilter(new BlurMaskFilter(3.5f,BlurMaskFilter.Blur.NORMAL));canvas.drawPath(polygon,paint);texture(1,mask,"lakeMask");mask.recycle();
+                JSONObject region=new JSONObject(readAsset("water-mask.json"));float iw=(float)region.getDouble("imageWidth"),ih=(float)region.getDouble("imageHeight");
+                Bitmap mask=Bitmap.createBitmap(960,540,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(mask);Path polygon=maskPath(region.getJSONArray("outer"),iw,ih);canvas.save();canvas.clipPath(polygon);Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(Color.WHITE);paint.setMaskFilter(new BlurMaskFilter(3.5f,BlurMaskFilter.Blur.NORMAL));canvas.drawPath(polygon,paint);canvas.restore();
+                Paint erase=new Paint(Paint.ANTI_ALIAS_FLAG);erase.setColor(Color.WHITE);erase.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));erase.setStyle(Paint.Style.STROKE);erase.setStrokeWidth(12);erase.setMaskFilter(new BlurMaskFilter(3,BlurMaskFilter.Blur.NORMAL));canvas.drawPath(polygon,erase);erase.setMaskFilter(null);canvas.drawPath(polygon,erase);erase.setStyle(Paint.Style.FILL);JSONArray holes=region.getJSONArray("holes");for(int i=0;i<holes.length();i++){Path hole=maskPath(holes.getJSONObject(i).getJSONArray("points"),iw,ih);erase.setMaskFilter(new BlurMaskFilter(3.5f,BlurMaskFilter.Blur.NORMAL));canvas.drawPath(hole,erase);erase.setMaskFilter(null);canvas.drawPath(hole,erase);}texture(1,mask,"lakeMask");mask.recycle();
+
                 timeLocation=GLES20.glGetUniformLocation(program,"time");motionLocation=GLES20.glGetUniformLocation(program,"animate");
                 int error=GLES20.glGetError();if(error!=GLES20.GL_NO_ERROR)throw new IllegalStateException("GL setup error "+error);
                 Log.i(TAG,"Water renderer ready: "+GLES20.glGetString(GLES20.GL_RENDERER));

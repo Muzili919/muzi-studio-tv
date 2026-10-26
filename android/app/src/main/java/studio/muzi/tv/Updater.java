@@ -37,7 +37,8 @@ public final class Updater {
     private static Intent ready; private static String readyName,readyLabel,readyPackage; private static long readyCode;
     private static boolean showing;
     public static void background(Activity a){if(foreground.get()==a)foreground.clear();}
-    public static void onHome(Activity a){foreground=new java.lang.ref.WeakReference<>(a);showReady(a);if(System.currentTimeMillis()-lastCheck>3600000L)checkInternal(a,false);}
+    static boolean checkDue(long now,long previous,boolean entering){return previous==0||now-previous>=(entering?60000L:300000L);}
+    public static void onHome(Activity a){boolean entering=foreground.get()!=a;foreground=new java.lang.ref.WeakReference<>(a);showReady(a);if(checkDue(System.currentTimeMillis(),lastCheck,entering))checkInternal(a,false);}
     public static void check(Activity a){foreground=new java.lang.ref.WeakReference<>(a);checkInternal(a,true);}
     private static synchronized void checkInternal(final Activity a,final boolean manual){
         if(working||downloading)return;

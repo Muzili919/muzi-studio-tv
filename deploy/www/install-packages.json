@@ -10,11 +10,11 @@
       ],
       "desktop": {
         "package": "studio.muzi.tv",
-        "versionCode": 126,
-        "versionName": "1.2.5",
+        "versionCode": 127,
+        "versionName": "1.2.6",
         "minSdk": 23,
-        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.5.apk",
-        "sha256": "f921c34db6e0dce9fb63bc62519ce6a386c3ac1599a1a3bda2787d3e95ad87a1"
+        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.6.apk",
+        "sha256": "59e7148a991359ddabaac1e0f77ce52601f6b1fccc7b2412f95e2466feefa6a7"
       },
       "player": {
         "file": "muzi-player-4.0.7-muzi.10.apk",
@@ -32,11 +32,11 @@
       ],
       "desktop": {
         "package": "studio.muzi.tv",
-        "versionCode": 126,
-        "versionName": "1.2.5",
+        "versionCode": 127,
+        "versionName": "1.2.6",
         "minSdk": 23,
-        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.5.apk",
-        "sha256": "f921c34db6e0dce9fb63bc62519ce6a386c3ac1599a1a3bda2787d3e95ad87a1"
+        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.6.apk",
+        "sha256": "59e7148a991359ddabaac1e0f77ce52601f6b1fccc7b2412f95e2466feefa6a7"
       },
       "player": {
         "file": "muzi-player-5.7.8-api24-arm32.apk",
@@ -54,11 +54,11 @@
       ],
       "desktop": {
         "package": "studio.muzi.tv",
-        "versionCode": 126,
-        "versionName": "1.2.5",
+        "versionCode": 127,
+        "versionName": "1.2.6",
         "minSdk": 23,
-        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.5.apk",
-        "sha256": "f921c34db6e0dce9fb63bc62519ce6a386c3ac1599a1a3bda2787d3e95ad87a1"
+        "url": "https://zhishixingqiu.top/tv/apk/muzi-studio-1.2.6.apk",
+        "sha256": "59e7148a991359ddabaac1e0f77ce52601f6b1fccc7b2412f95e2466feefa6a7"
       },
       "player": {
         "file": "muzi-player-5.7.8-api24-arm64.apk",
