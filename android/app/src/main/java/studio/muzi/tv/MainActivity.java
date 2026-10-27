@@ -2000,6 +2000,7 @@ public class MainActivity extends Activity {
 
     @Override // android.app.Activity, android.view.Window.Callback
     public boolean dispatchKeyEvent(KeyEvent e) {
+        if ("home".equals(this.screen) && this.home != null && this.home.navigationKey(e)) return true;
         if (e.getAction() == 0 && e.getRepeatCount() == 0 && BiliScreens.onKey(this, e)) {
             return true;
         }

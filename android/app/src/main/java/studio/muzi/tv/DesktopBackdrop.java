@@ -32,7 +32,7 @@ final class DesktopBackdrop extends FrameLayout {
         Bitmap photo=null;
         try(InputStream in=context.getAssets().open("galaxy.jpg")){photo=BitmapFactory.decodeStream(in);}catch(Exception e){Log.e(TAG,"wallpaper unavailable",e);}
         wall=photo; renderer=new WaterRenderer();
-        surface=new GLSurfaceView(context); surface.setEGLContextClientVersion(2);
+        surface=new GLSurfaceView(context); surface.setFocusable(false);surface.setFocusableInTouchMode(false);surface.setEGLContextClientVersion(2);
         surface.setPreserveEGLContextOnPause(true); surface.setRenderer(renderer);
         surface.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         addView(surface,new LayoutParams(-1,-1));
