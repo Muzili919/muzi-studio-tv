@@ -9,10 +9,10 @@
   },
   "fongmi": {
     "package": "com.fongmi.android.tv",
-    "versionCode": 422,
-    "versionName": "4.0.7-muzi.10",
-    "url": "https://zhishixingqiu.top/tv/apk/muzi-player-4.0.7-muzi.10.apk",
-    "sha256": "876ec9c085c3c5c19a271ade2afb6dd134880aecca5c43706b4f1629843d0ec0",
+    "versionCode": 423,
+    "versionName": "4.0.7-muzi.11",
+    "url": "https://zhishixingqiu.top/tv/apk/muzi-player-4.0.7-muzi.11.apk",
+    "sha256": "877e6cba1054b9d0a0e9668754297d4e2359dfb6073e0550e5a8a3e019ee3ffb",
     "minSdk": 23
   }
 }

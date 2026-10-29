@@ -1,0 +1,2 @@
+import java.nio.file.*;import java.io.*;import com.android.tools.smali.baksmali.*;import com.android.tools.smali.dexlib2.*;import com.android.tools.smali.dexlib2.dexbacked.*;
+public class Disassemble {public static void main(String[] a)throws Exception{BaksmaliOptions o=new BaksmaliOptions();o.localsDirective=true;Baksmali.disassembleDexFile(new DexBackedDexFile(new Opcodes(23,-1),Files.readAllBytes(Paths.get(a[0])),0),new File(a[1]),1,o);}}

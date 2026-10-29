@@ -1,6 +1,6 @@
 {
   "desktopUniversal": true,
-  "playerPackagesUnchanged": true,
+  "playerPackagesUnchanged": false,
   "profiles": [
     {
       "name": "安卓6兼容组合",
@@ -17,11 +17,12 @@
         "sha256": "344b31a7198b0d6c26c051d75b762c3b02be0cc562322bce03b6abfa3be11735"
       },
       "player": {
-        "file": "muzi-player-4.0.7-muzi.10.apk",
-        "versionCode": 422,
-        "sha256": "876ec9c085c3c5c19a271ade2afb6dd134880aecca5c43706b4f1629843d0ec0",
-        "unchangedCompatiblePlayer": true,
-        "url": "https://zhishixingqiu.top/tv/apk/muzi-player-4.0.7-muzi.10.apk"
+        "file": "muzi-player-4.0.7-muzi.11.apk",
+        "versionCode": 423,
+        "sha256": "877e6cba1054b9d0a0e9668754297d4e2359dfb6073e0550e5a8a3e019ee3ffb",
+        "unchangedCompatiblePlayer": false,
+        "url": "https://zhishixingqiu.top/tv/apk/muzi-player-4.0.7-muzi.11.apk",
+        "versionName": "4.0.7-muzi.11"
       }
     },
     {
