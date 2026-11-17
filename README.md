@@ -4,6 +4,12 @@ Android TV（Android 6.0+ / API 23）电视桌面：木子影界、直播电视�
 
 A native Android TV home (API23+) with separate VOD/live entries, customizable app shortcuts, gentle lake motion and startup update checks. System installation approval may still be required.
 
+## 最新安卓6安装包
+
+[下载安卓6更新包：木子桌面1.2.6 + 木子影界4.0.7-muzi.12](https://github.com/Muzili919/muzi-studio-tv/releases/tag/player-v4.0.7-muzi.12)。包名、版本、SHA256和正式签名已复核，与当前联网升级清单一致。
+
+更新前先在播放器设置中备份，使用同签名覆盖安装，保留原配置和观看记录；不要卸载或清数据。安卓7及以上继续按系统位数选择原5.7.8播放器，不要降级覆盖。详细步骤见[安装说明](INSTALL-FAMILY.md)和[muzi.12发布说明](docs/releases/player-4.0.7-muzi.12.md)。本次同步发布没有执行实机安装或播放验收。
+
 ## 目录 / Layout
 - `android/` — studio 源码 / app source (Java, Media3 ExoPlayer)
 - `fongmi-config/` — FongMi 配置与直播列表示例（接口均为占位）/ FongMi config & playlist examples (placeholders)
